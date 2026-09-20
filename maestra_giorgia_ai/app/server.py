@@ -1,4 +1,4 @@
-import json, os, sqlite3, threading, urllib.request, urllib.error
+import json, os, sqlite3, threading, urllib.request, urllib.error, base64, io, wave, time
 from datetime import datetime, date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -26,6 +26,10 @@ class Store:
             CREATE TABLE IF NOT EXISTS materials(id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER,kind TEXT,title TEXT,content TEXT,created_at TEXT);
             """)
             self.db.commit()
+            cols=[r[1] for r in self.db.execute("PRAGMA table_info(evaluations)").fetchall()]
+            if "eval_type" not in cols:
+                self.db.execute("ALTER TABLE evaluations ADD COLUMN eval_type TEXT DEFAULT 'Orale'")
+                self.db.commit()
     def all(self,sql,args=()):
         with self.lock:return [dict(x) for x in self.db.execute(sql,args).fetchall()]
     def one(self,sql,args=()):
@@ -50,9 +54,16 @@ store=Store()
 
 def load_settings():
     try:return json.loads(SETTINGS.read_text())
-    except:return {'teacher_name':'Giorgia Mauro','assistant_name':'Maestra','gemini_model':'gemini-3.8-flash','gemini_api_key':''}
+    except:return {'teacher_name':'Giorgia Mauro','assistant_name':'Maestra','gemini_model':'gemini-3.8-flash','gemini_api_key':'','ai_provider':'auto','ha_ai_task_entity':'','tts_voice':'Kore','tts_model':'gemini-3.1-flash-tts-preview','auto_speak':True}
 def save_settings(x):
     SETTINGS.write_text(json.dumps(x,ensure_ascii=False,indent=2)); os.chmod(SETTINGS,0o600)
+
+def _http_json(url, body=None, headers=None, timeout=180):
+    data=json.dumps(body).encode() if body is not None else None
+    req=urllib.request.Request(url,data=data,headers=headers or {'Content-Type':'application/json'})
+    with urllib.request.urlopen(req,timeout=timeout) as r:
+        raw=r.read()
+        return json.loads(raw.decode()) if raw else {}
 
 def gemini(prompt,context=''):
     s=load_settings(); key=s.get('gemini_api_key','').strip()
@@ -60,10 +71,105 @@ def gemini(prompt,context=''):
     model=s.get('gemini_model') or 'gemini-3.8-flash'
     url=f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
     body={'contents':[{'parts':[{'text':PROMPT+'\n\n'+context+'\n\nRICHIESTA:\n'+prompt}]}]}
-    req=urllib.request.Request(url,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
-    with urllib.request.urlopen(req,timeout=180) as r: out=json.loads(r.read().decode())
-    try:return ''.join(p.get('text','') for p in out['candidates'][0]['content']['parts']).strip()
-    except: raise RuntimeError(out.get('error',{}).get('message','Risposta Gemini non valida'))
+    last=None
+    for attempt in range(3):
+        try:
+            out=_http_json(url,body,{'Content-Type':'application/json'},180)
+            text=''.join(p.get('text','') for p in out.get('candidates',[{}])[0].get('content',{}).get('parts',[])).strip()
+            if text:return text
+            raise RuntimeError(out.get('error',{}).get('message','Risposta Gemini non valida'))
+        except urllib.error.HTTPError as e:
+            detail=e.read().decode(errors='ignore')
+            last=RuntimeError(detail or str(e))
+            if e.code not in (429,500,502,503,504) or attempt==2: break
+            time.sleep(1.5*(attempt+1))
+        except Exception as e:
+            last=e
+            if attempt==2: break
+            time.sleep(1.0*(attempt+1))
+    raise RuntimeError(f'Gemini non disponibile: {last}')
+
+def _ha_headers():
+    token=os.environ.get('SUPERVISOR_TOKEN','').strip()
+    if not token: raise RuntimeError('Token Home Assistant non disponibile')
+    return {'Authorization':f'Bearer {token}','Content-Type':'application/json'}
+
+def ha_ai_tasks():
+    try:
+        states=_http_json('http://supervisor/core/api/states',None,_ha_headers(),30)
+        out=[]
+        for st in states:
+            eid=st.get('entity_id','')
+            if eid.startswith('ai_task.'):
+                out.append({'entity_id':eid,'name':st.get('attributes',{}).get('friendly_name') or eid,'state':st.get('state')})
+        return out
+    except Exception:
+        return []
+
+def _find_text(obj):
+    if isinstance(obj,str): return obj.strip()
+    if isinstance(obj,dict):
+        if isinstance(obj.get('data'),str) and obj.get('data').strip(): return obj['data'].strip()
+        if isinstance(obj.get('text'),str) and obj.get('text').strip(): return obj['text'].strip()
+        for k in ('service_response','response','result'):
+            if k in obj:
+                t=_find_text(obj[k])
+                if t:return t
+        for v in obj.values():
+            t=_find_text(v)
+            if t:return t
+    if isinstance(obj,list):
+        for v in obj:
+            t=_find_text(v)
+            if t:return t
+    return ''
+
+def ha_ai_task(prompt,context='',entity_id=''):
+    body={'task_name':'Maestra Giorgia AI','instructions':PROMPT+'\n\n'+context+'\n\nRICHIESTA:\n'+prompt}
+    if entity_id: body['entity_id']=entity_id
+    out=_http_json('http://supervisor/core/api/services/ai_task/generate_data?return_response',body,_ha_headers(),240)
+    text=_find_text(out.get('service_response',out))
+    if not text: raise RuntimeError('AI Task Home Assistant non ha restituito testo')
+    return text
+
+def ai_generate(prompt,context=''):
+    s=load_settings(); provider=(s.get('ai_provider') or 'auto').lower()
+    entity=(s.get('ha_ai_task_entity') or '').strip()
+    errors=[]
+    if provider in ('auto','gemini'):
+        try:return gemini(prompt,context)
+        except Exception as e:
+            errors.append(str(e))
+            if provider=='gemini': raise
+    if provider in ('auto','ha_task'):
+        try:return ha_ai_task(prompt,context,entity)
+        except Exception as e: errors.append(str(e))
+    raise RuntimeError('Nessun motore AI disponibile. '+' | '.join(errors))
+
+def gemini_tts(text,voice='Kore'):
+    s=load_settings(); key=s.get('gemini_api_key','').strip()
+    if not key: raise RuntimeError('Gemini API key non configurata per la voce')
+    model=s.get('tts_model') or 'gemini-3.1-flash-tts-preview'
+    url=f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
+    prompt='Leggi in italiano con tono femminile professionale, caldo e chiaro, da insegnante di scuola primaria. Testo da leggere:\n'+text[:6000]
+    body={
+      'contents':[{'parts':[{'text':prompt}]}],
+      'generationConfig':{
+        'responseModalities':['AUDIO'],
+        'speechConfig':{'voiceConfig':{'prebuiltVoiceConfig':{'voiceName':voice}}}
+      }
+    }
+    out=_http_json(url,body,{'Content-Type':'application/json'},180)
+    parts=out.get('candidates',[{}])[0].get('content',{}).get('parts',[])
+    inline=next((p.get('inlineData') or p.get('inline_data') for p in parts if p.get('inlineData') or p.get('inline_data')),None)
+    if not inline or not inline.get('data'): raise RuntimeError('Gemini TTS non ha restituito audio')
+    raw=base64.b64decode(inline['data'])
+    mime=(inline.get('mimeType') or inline.get('mime_type') or '').lower()
+    if 'wav' in mime:return raw
+    buff=io.BytesIO()
+    with wave.open(buff,'wb') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(24000); wf.writeframes(raw)
+    return buff.getvalue()
 
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
@@ -88,6 +194,7 @@ class H(BaseHTTPRequestHandler):
             if p=='/api/goals': return self.sendj({'ok':True,'items':store.all('SELECT * FROM goals WHERE student_id=? ORDER BY id DESC',(sid,)) if sid else []})
             if p=='/api/diary': return self.sendj({'ok':True,'items':store.all('SELECT * FROM diary WHERE student_id=? ORDER BY diary_date DESC,id DESC',(sid,)) if sid else []})
             if p=='/api/materials': return self.sendj({'ok':True,'items':store.all('SELECT * FROM materials ORDER BY id DESC LIMIT 100')})
+            if p=='/api/ha_ai_tasks': return self.sendj({'ok':True,'items':ha_ai_tasks()})
             return self.sendj({'ok':False,'error':'Endpoint non trovato'},404)
         except Exception as e:return self.sendj({'ok':False,'error':str(e)},500)
     def do_POST(self):
@@ -99,25 +206,29 @@ class H(BaseHTTPRequestHandler):
                 else:i=store.write('INSERT INTO students(name,class_name,strengths,difficulties,strategies,goals,created_at) VALUES(?,?,?,?,?,?,?)',(b.get('name',''),b.get('class_name',''),b.get('strengths',''),b.get('difficulties',''),b.get('strategies',''),b.get('goals',''),now))
                 return self.sendj({'ok':True,'id':i})
             if p=='/api/evaluations':
-                i=store.write('INSERT INTO evaluations(student_id,eval_date,term,subject,activity,grade,autonomy,notes) VALUES(?,?,?,?,?,?,?,?)',(b.get('student_id'),b.get('eval_date') or date.today().isoformat(),int(b.get('term') or 1),b.get('subject',''),b.get('activity',''),b.get('grade',''),int(b.get('autonomy') or 3),b.get('notes','')))
+                i=store.write('INSERT INTO evaluations(student_id,eval_date,term,subject,activity,grade,autonomy,notes,eval_type) VALUES(?,?,?,?,?,?,?,?,?)',(b.get('student_id'),b.get('eval_date') or date.today().isoformat(),int(b.get('term') or 1),b.get('subject',''),b.get('activity',''),b.get('grade',''),int(b.get('autonomy') or 3),b.get('notes',''),b.get('eval_type') or 'Orale'))
                 return self.sendj({'ok':True,'id':i})
             if p=='/api/goals':
                 i=store.write('INSERT INTO goals(student_id,area,description,status,notes,updated_at) VALUES(?,?,?,?,?,?)',(b.get('student_id'),b.get('area',''),b.get('description',''),b.get('status','Da iniziare'),b.get('notes',''),now)); return self.sendj({'ok':True,'id':i})
             if p=='/api/diary':
                 i=store.write('INSERT INTO diary(student_id,diary_date,category,text,participation,support_level) VALUES(?,?,?,?,?,?)',(b.get('student_id'),b.get('diary_date') or date.today().isoformat(),b.get('category','Apprendimento'),b.get('text',''),int(b.get('participation') or 3),int(b.get('support_level') or 3))); return self.sendj({'ok':True,'id':i})
             if p=='/api/ai':
-                txt=gemini(b.get('prompt',''),store.context(b.get('student_id'))); return self.sendj({'ok':True,'text':txt})
+                txt=ai_generate(b.get('prompt',''),store.context(b.get('student_id'))); return self.sendj({'ok':True,'text':txt,'provider':load_settings().get('ai_provider','auto')})
+            if p=='/api/tts':
+                voice=b.get('voice') or load_settings().get('tts_voice') or 'Kore'
+                audio=gemini_tts(b.get('text',''),voice)
+                self.send_response(200); self.send_header('Content-Type','audio/wav'); self.send_header('Content-Length',str(len(audio))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(audio); return
             if p=='/api/materials':
                 i=store.write('INSERT INTO materials(student_id,kind,title,content,created_at) VALUES(?,?,?,?,?)',(b.get('student_id'),b.get('kind','Materiale'),b.get('title','Materiale'),b.get('content',''),now)); return self.sendj({'ok':True,'id':i})
             if p=='/api/settings':
                 s=load_settings()
-                for k in ('teacher_name','assistant_name','gemini_model'):
+                for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
                     if k in b:s[k]=b[k]
                 if b.get('gemini_api_key'):s['gemini_api_key']=b['gemini_api_key'].strip()
                 if b.get('remove_gemini_key'):s['gemini_api_key']=''
                 save_settings(s); return self.sendj({'ok':True})
             if p=='/api/test_ai':
-                return self.sendj({'ok':True,'text':gemini('Rispondi soltanto con: Maestra collegata correttamente.')})
+                return self.sendj({'ok':True,'text':ai_generate('Rispondi soltanto con: Maestra collegata correttamente.')})
             return self.sendj({'ok':False,'error':'Endpoint non trovato'},404)
         except urllib.error.HTTPError as e:
             try:d=e.read().decode()
