@@ -1,4 +1,4 @@
-import json, os, sqlite3, threading, urllib.request, urllib.error, base64, io, wave, time, re
+import json, os, sqlite3, threading, urllib.request, urllib.error, base64, io, wave, time, re, textwrap
 from datetime import datetime, date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -190,46 +190,86 @@ def _safe_filename(value, fallback='documento'):
     value=re.sub(r'[^A-Za-z0-9._-]+','_',str(value or '').strip()).strip('._')
     return value[:90] or fallback
 
-def _pdf_styles():
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER
-    styles=getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='MGTitle',parent=styles['Title'],fontName='Helvetica-Bold',fontSize=20,leading=24,textColor='#17345d',spaceAfter=12))
-    styles.add(ParagraphStyle(name='MGSub',parent=styles['Normal'],fontName='Helvetica',fontSize=10,leading=14,textColor='#667085',spaceAfter=10))
-    styles.add(ParagraphStyle(name='MGBody',parent=styles['BodyText'],fontName='Helvetica',fontSize=10.5,leading=15,textColor='#1f2937',spaceAfter=7))
-    styles.add(ParagraphStyle(name='MGSection',parent=styles['Heading2'],fontName='Helvetica-Bold',fontSize=13,leading=17,textColor='#17345d',spaceBefore=8,spaceAfter=7))
-    return styles
+def _pdf_clean(value):
+    return str(value or '').replace('\r','').encode('latin-1','replace').decode('latin-1')
 
-def _text_to_flowables(text,styles):
-    from reportlab.platypus import Paragraph, Spacer
-    out=[]
-    for raw in str(text or '').splitlines():
-        line=raw.strip()
-        if not line:
-            out.append(Spacer(1,5)); continue
-        if line.startswith(('## ','### ')):
-            line=line.lstrip('#').strip()
-            out.append(Paragraph(line.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;'),styles['MGSection']))
-        else:
-            safe=line.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-            if safe.startswith(('- ','• ')):
-                safe='• '+safe[2:].strip()
-            out.append(Paragraph(safe,styles['MGBody']))
-    return out
+def _pdf_escape(value):
+    return _pdf_clean(value).replace('\\','\\\\').replace('(','\\(').replace(')','\\)')
+
+def _pdf_text_cmd(x,y,text,size=10,bold=False):
+    font='F2' if bold else 'F1'
+    return f"BT /{font} {size} Tf 1 0 0 1 {x:.1f} {y:.1f} Tm ({_pdf_escape(text)}) Tj ET\n"
+
+def _pdf_make(pages):
+    # PDF minimale A4, Helvetica/Helvetica-Bold, nessuna dipendenza esterna.
+    objects=[None,
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        None,
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+    ]
+    page_refs=[]
+    for commands in pages:
+        content=''.join(commands).encode('latin-1','replace')
+        content_obj=len(objects)
+        objects.append(b"<< /Length "+str(len(content)).encode()+b" >>\nstream\n"+content+b"endstream")
+        page_obj=len(objects)
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {content_obj} 0 R >>")
+        page_refs.append(page_obj)
+    objects[2]="<< /Type /Pages /Kids ["+' '.join(f'{x} 0 R' for x in page_refs)+f"] /Count {len(page_refs)} >>"
+
+    out=bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets=[0]*len(objects)
+    for i in range(1,len(objects)):
+        offsets[i]=len(out)
+        obj=objects[i]
+        data=obj if isinstance(obj,(bytes,bytearray)) else obj.encode('latin-1','replace')
+        out.extend(f"{i} 0 obj\n".encode()); out.extend(data); out.extend(b"\nendobj\n")
+    xref=len(out)
+    out.extend(f"xref\n0 {len(objects)}\n".encode())
+    out.extend(b"0000000000 65535 f \n")
+    for i in range(1,len(objects)):
+        out.extend(f"{offsets[i]:010d} 00000 n \n".encode())
+    out.extend(f"trailer\n<< /Size {len(objects)} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
+    return bytes(out)
+
+def _wrapped_lines(text,width=92):
+    lines=[]
+    for raw in _pdf_clean(text).splitlines():
+        raw=raw.strip()
+        if not raw:
+            lines.append(''); continue
+        if raw.startswith(('### ','## ')):
+            raw=raw.lstrip('#').strip().upper()
+        prefix='- ' if raw.startswith(('• ','- ')) else ''
+        if prefix: raw=raw[2:].strip()
+        wrapped=textwrap.wrap(raw,width=width,break_long_words=False,replace_whitespace=False) or ['']
+        lines.extend([(prefix if i==0 else '  ')+part for i,part in enumerate(wrapped)])
+    return lines
 
 def material_pdf(title,content,student_name='',kind='Materiale'):
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    styles=_pdf_styles(); buff=io.BytesIO()
-    doc=SimpleDocTemplate(buff,pagesize=A4,rightMargin=18*mm,leftMargin=18*mm,topMargin=16*mm,bottomMargin=16*mm,title=title or kind,author='GM Maestra AI')
-    story=[Paragraph('GM Maestra AI',styles['MGTitle']),Paragraph((title or kind).replace('&','&amp;'),styles['MGSection'])]
-    meta=[]
-    if student_name: meta.append('Alunno/a: '+student_name)
-    if kind: meta.append('Tipo: '+kind)
-    if meta: story.append(Paragraph(' · '.join(meta).replace('&','&amp;'),styles['MGSub']))
-    story.append(Spacer(1,6)); story.extend(_text_to_flowables(content,styles))
-    doc.build(story); return buff.getvalue()
+    pages=[]; cmds=[]; y=800
+    def new_page():
+        nonlocal cmds,y
+        if cmds: pages.append(cmds)
+        cmds=[]; y=800
+        cmds.append(_pdf_text_cmd(45,y,'GM Maestra AI',20,True)); y-=28
+        cmds.append(_pdf_text_cmd(45,y,title or kind,14,True)); y-=20
+        meta=[]
+        if student_name: meta.append('Alunno/a: '+student_name)
+        if kind: meta.append('Tipo: '+kind)
+        if meta: cmds.append(_pdf_text_cmd(45,y,' - '.join(meta),9,False)); y-=22
+        cmds.append("0.88 0.90 0.96 RG 45 %.1f m 550 %.1f l S\n"%(y,y)); y-=18
+    new_page()
+    for line in _wrapped_lines(content,92):
+        if y<55: new_page()
+        if not line:
+            y-=8; continue
+        is_heading=line.isupper() and len(line)<80
+        cmds.append(_pdf_text_cmd(48,y,line,11 if is_heading else 10,is_heading))
+        y-=17 if is_heading else 14
+    if cmds: pages.append(cmds)
+    return _pdf_make(pages)
 
 def _grade_num(value):
     m=re.search(r'\d+(?:[\.,]\d+)?',str(value or ''))
@@ -244,14 +284,10 @@ def _eval_type(row):
     return t or ('Orale' if ('oral' in a or 'interrog' in a) else 'Osservazione')
 
 def evaluation_pdf(student_name,period_label,items):
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
-    styles=_pdf_styles(); buff=io.BytesIO()
-    doc=SimpleDocTemplate(buff,pagesize=A4,rightMargin=14*mm,leftMargin=14*mm,topMargin=14*mm,bottomMargin=14*mm,title='Report valutazioni '+student_name,author='GM Maestra AI')
-    story=[Paragraph('Report valutazioni',styles['MGTitle']),Paragraph(student_name.replace('&','&amp;'),styles['MGSection']),Paragraph(period_label.replace('&','&amp;'),styles['MGSub'])]
+    pages=[]; first=[]; y=800
+    first.append(_pdf_text_cmd(45,y,'Report valutazioni',20,True)); y-=28
+    first.append(_pdf_text_cmd(45,y,student_name,15,True)); y-=20
+    first.append(_pdf_text_cmd(45,y,period_label,9,False)); y-=26
 
     numeric=[x for x in items if _grade_num(x.get('grade')) is not None]
     if numeric:
@@ -259,53 +295,57 @@ def evaluation_pdf(student_name,period_label,items):
         for x in numeric:
             name=(x.get('subject') or 'Altro').strip().title()
             by_subject.setdefault(name,[]).append(_grade_num(x.get('grade')))
-        story.append(Paragraph('Media per materia',styles['MGSection']))
         rows=sorted([(k,sum(v)/len(v)) for k,v in by_subject.items()])
-        d=Drawing(500,max(90,34*len(rows)+20))
-        y=d.height-26
-        for name,val in rows:
-            d.add(String(4,y+6,name,fontName='Helvetica',fontSize=9,fillColor=colors.HexColor('#17345d')))
-            d.add(Rect(120,y,300*(max(0,min(10,val))/10),18,rx=8,ry=8,fillColor=colors.HexColor('#6f7ff2'),strokeColor=None))
-            d.add(String(430,y+5,f'{val:.1f}',fontName='Helvetica-Bold',fontSize=9,fillColor=colors.HexColor('#17345d')))
-            y-=34
-        story.append(d); story.append(Spacer(1,8))
+        first.append(_pdf_text_cmd(45,y,'Media per materia',13,True)); y-=20
+        for name,val in rows[:10]:
+            if y<420: break
+            first.append(_pdf_text_cmd(45,y,name,9,False))
+            bar_x=180; bar_w=300*(max(0,min(10,val))/10)
+            first.append(f"0.44 0.50 0.95 rg {bar_x} {y-3:.1f} {bar_w:.1f} 13 re f\n")
+            first.append(_pdf_text_cmd(490,y,f'{val:.1f}',9,True)); y-=24
 
         ordered=sorted(numeric,key=lambda x:(x.get('eval_date') or '',x.get('id') or 0))
-        if len(ordered)>=2:
-            story.append(Paragraph('Andamento nel tempo',styles['MGSection']))
-            W,H=500,190; d2=Drawing(W,H); L,R,T,B=34,14,14,28
+        if len(ordered)>=2 and y>255:
+            y-=6; first.append(_pdf_text_cmd(45,y,'Andamento nel tempo',13,True)); y-=18
+            x0,x1=55,540; yy0,yy1=y-150,y
             for tick in range(0,11,2):
-                yy=B+(tick/10)*(H-B-T); d2.add(Line(L,yy,W-R,yy,strokeColor=colors.HexColor('#ece8f1')))
-                d2.add(String(8,yy-3,str(tick),fontSize=8,fillColor=colors.HexColor('#7d8492')))
+                py=yy0+(tick/10)*(yy1-yy0)
+                first.append(f"0.92 0.91 0.95 RG {x0} {py:.1f} m {x1} {py:.1f} l S\n")
+                first.append(_pdf_text_cmd(34,py-3,str(tick),7,False))
             pts=[]
-            for i,x in enumerate(ordered):
-                xx=L+(i/(len(ordered)-1))*(W-L-R)
-                val=max(0,min(10,_grade_num(x.get('grade'))))
-                yy=B+(val/10)*(H-B-T); pts.append((xx,yy,x))
-            for (x1,y1,_),(x2,y2,__) in zip(pts,pts[1:]): d2.add(Line(x1,y1,x2,y2,strokeColor=colors.HexColor('#5578e8'),strokeWidth=2))
-            for xx,yy,x in pts:
-                col='#e56ca7' if _eval_type(x)=='Scritta' else '#5578e8'
-                d2.add(Circle(xx,yy,3.5,fillColor=colors.HexColor(col),strokeColor=None))
-            story.append(d2); story.append(Spacer(1,8))
+            for i,row in enumerate(ordered):
+                xx=x0+(i/(len(ordered)-1))*(x1-x0)
+                val=max(0,min(10,_grade_num(row.get('grade'))))
+                py=yy0+(val/10)*(yy1-yy0); pts.append((xx,py,row))
+            for (xa,ya,_),(xb,yb,__) in zip(pts,pts[1:]):
+                first.append(f"0.33 0.47 0.91 RG 2 w {xa:.1f} {ya:.1f} m {xb:.1f} {yb:.1f} l S\n")
+            for xx,py,row in pts:
+                if _eval_type(row)=='Scritta':
+                    first.append(f"0.90 0.42 0.65 rg {xx-3:.1f} {py-3:.1f} 6 6 re f\n")
+                else:
+                    first.append(f"0.33 0.47 0.91 rg {xx-3:.1f} {py-3:.1f} 6 6 re f\n")
+            y=yy0-26
+    pages.append(first)
 
-    data=[['Data','Materia','Tipo prova','Voto']]
-    for x in sorted(items,key=lambda r:(r.get('eval_date') or '',r.get('id') or 0),reverse=True):
-        data.append([x.get('eval_date') or '',(x.get('subject') or '').title(),_eval_type(x),x.get('grade') or ''])
-    table=Table(data,colWidths=[30*mm,55*mm,42*mm,25*mm],repeatRows=1)
-    table.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#edf1ff')),
-        ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor('#17345d')),
-        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
-        ('FONTNAME',(0,1),(-1,-1),'Helvetica'),
-        ('FONTSIZE',(0,0),(-1,-1),9),
-        ('GRID',(0,0),(-1,-1),0.25,colors.HexColor('#e3e5ea')),
-        ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#fafbff')]),
-        ('LEFTPADDING',(0,0),(-1,-1),6),('RIGHTPADDING',(0,0),(-1,-1),6),
-        ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
-    ]))
-    story.append(Paragraph('Valutazioni',styles['MGSection'])); story.append(table)
-    doc.build(story); return buff.getvalue()
+    sorted_items=sorted(items,key=lambda r:(r.get('eval_date') or '',r.get('id') or 0),reverse=True)
+    per_page=28
+    for start in range(0,max(1,len(sorted_items)),per_page):
+        chunk=sorted_items[start:start+per_page]
+        cmds=[]; y=800
+        cmds.append(_pdf_text_cmd(45,y,'Valutazioni - '+student_name,15,True)); y-=26
+        cols=[(45,'Data'),(135,'Materia'),(315,'Tipo prova'),(455,'Voto')]
+        for x,label in cols: cmds.append(_pdf_text_cmd(x,y,label,9,True))
+        y-=12; cmds.append(f"0.82 0.84 0.90 RG 45 {y:.1f} m 550 {y:.1f} l S\n"); y-=15
+        if not chunk:
+            cmds.append(_pdf_text_cmd(45,y,'Nessuna valutazione nel periodo selezionato.',10,False))
+        for row in chunk:
+            subject=(row.get('subject') or '').strip().title()
+            if len(subject)>27: subject=subject[:24]+'...'
+            values=[(45,row.get('eval_date') or ''),(135,subject),(315,_eval_type(row)),(455,row.get('grade') or '')]
+            for x,val in values: cmds.append(_pdf_text_cmd(x,y,val,9,False))
+            y-=20; cmds.append(f"0.93 0.93 0.95 RG 45 {y+6:.1f} m 550 {y+6:.1f} l S\n")
+        pages.append(cmds)
+    return _pdf_make(pages)
 
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
