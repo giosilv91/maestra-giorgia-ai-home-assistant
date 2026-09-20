@@ -1,3 +1,14 @@
+# 1.5.3
+- Fotocamera live direttamente dentro Maestra Giorgia AI.
+- Pulsante Scatta copertina per Libro AI.
+- Pulsante Aggiungi pagina per fotografare piu pagine.
+- Pulsante Scatta compito per Analizza compiti.
+- Pulsante Scatta scrittura per Calligrafia.
+- Anteprima live, Scatta, Cambia camera e Chiudi.
+- Usa la fotocamera posteriore come predefinita e permette il passaggio a quella anteriore.
+- Se la WebView di Home Assistant non consente la fotocamera live, passa automaticamente alla fotocamera/selettore del dispositivo.
+- Nessuna modifica al database o ai dati degli alunni.
+
 # 1.5.2
 - Ripristinata Fotocamera AI sopra la base stabile 1.5.1 senza modificare il database.
 - Nuovo tasto 📷 Fotocamera AI nel menu.
