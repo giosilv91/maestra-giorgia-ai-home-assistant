@@ -456,6 +456,21 @@ class H(BaseHTTPRequestHandler):
                 if qv:
                     items=[x for x in items if qv in (' '.join(str(x.get(k) or '') for k in ('title','category','tags','summary','content'))).lower()]
                 return self.sendj({'ok':True,'items':items})
+            if p=='/api/vision_history':
+                mode=(q.get('mode',[''])[0] or '').strip()
+                sid=q.get('student_id',[None])[0]
+                if mode=='book':
+                    sql='SELECT id,student_id,title,author,topic,grade_level,created_at FROM book_scans'
+                elif mode=='homework':
+                    sql='SELECT id,student_id,subject,task_type,created_at FROM homework_reviews'
+                elif mode=='handwriting':
+                    sql='SELECT id,student_id,writing_type,legibility,created_at FROM handwriting_reviews'
+                else:
+                    return self.sendj({'ok':True,'items':[]})
+                args=()
+                if sid: sql+=' WHERE student_id=?'; args=(sid,)
+                sql+=' ORDER BY id DESC LIMIT 40'
+                return self.sendj({'ok':True,'items':store.all(sql,args)})
             if p=='/api/manual_file':
                 mid=q.get('id',[None])[0]
                 row=store.one('SELECT attachment_name,attachment_path FROM manuals WHERE id=?',(mid,)) if mid else None
@@ -506,6 +521,25 @@ class H(BaseHTTPRequestHandler):
                 pdf=evaluation_pdf(student.get('name','Alunno'),b.get('period_label') or 'Periodo selezionato',items)
                 filename=_safe_filename('Valutazioni_'+student.get('name','Alunno'),'valutazioni')+'.pdf'
                 self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition',f'attachment; filename="{filename}"'); self.send_header('Content-Length',str(len(pdf))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(pdf); return
+            if p=='/api/vision_analyze':
+                mode=(b.get('mode') or '').strip()
+                images=b.get('images') or []
+                sid=b.get('student_id')
+                context=store.context(sid) if sid else ''
+                result=vision_analyze(mode,images,context,b.get('subject',''),b.get('task_type',''),b.get('writing_type',''))
+                image_path=_save_jpeg((images[0] or {}).get('data',''),mode) if images else ''
+                if mode=='book':
+                    rid=store.write('INSERT INTO book_scans(student_id,title,author,topic,grade_level,summary_short,summary_simple,keywords,questions,map_text,image_path,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                        (sid,result.get('title',''),result.get('author',''),result.get('topic',''),result.get('grade_level',''),result.get('summary_short',''),result.get('summary_simple',''),json.dumps(result.get('keywords',[]),ensure_ascii=False),json.dumps(result.get('questions',[]),ensure_ascii=False),json.dumps(result.get('map',{}),ensure_ascii=False),image_path,now))
+                elif mode=='homework':
+                    rid=store.write('INSERT INTO homework_reviews(student_id,subject,task_type,image_path,detected_text,error_json,correction_text,child_explanation,recovery_activity,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                        (sid,result.get('subject') or b.get('subject',''),b.get('task_type',''),image_path,result.get('detected_text',''),json.dumps(result.get('errors',[]),ensure_ascii=False),'\n'.join((e.get('correction','') for e in result.get('errors',[]) if isinstance(e,dict))),result.get('child_explanation',''),result.get('recovery_activity',''),now))
+                elif mode=='handwriting':
+                    rid=store.write('INSERT INTO handwriting_reviews(student_id,writing_type,image_path,legibility,spacing_notes,alignment_notes,shape_notes,motor_notes,strengths,improvements,recommended_exercises,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+                        (sid,result.get('writing_type') or b.get('writing_type',''),image_path,result.get('legibility',''),result.get('spacing',''),result.get('alignment',''),result.get('letter_shape',''),result.get('motor_observations',''),json.dumps(result.get('strengths',[]),ensure_ascii=False),json.dumps(result.get('improvements',[]),ensure_ascii=False),json.dumps(result.get('exercises',[]),ensure_ascii=False),now))
+                else:
+                    raise RuntimeError('Modalita visione non valida')
+                return self.sendj({'ok':True,'id':rid,'result':result})
             if p=='/api/settings':
                 s=load_settings()
                 for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
