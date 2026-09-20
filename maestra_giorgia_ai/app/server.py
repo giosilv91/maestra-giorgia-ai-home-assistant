@@ -8,6 +8,7 @@ DATA=Path('/data'); DATA.mkdir(parents=True,exist_ok=True)
 MANUAL_DIR=DATA/'manuals'; MANUAL_DIR.mkdir(parents=True,exist_ok=True)
 DB=DATA/'maestra_giorgia_ai.db'; SETTINGS=DATA/'settings.json'
 INDEX=Path(__file__).with_name('index.html'); PORT=8099
+PRIVACY_PIN='2704'
 PROMPT="""Sei Maestra, assistente AI professionale di Giorgia Mauro per il sostegno nella scuola primaria italiana, dalla classe prima alla quinta.
 La priorita assoluta e farti capire: risposte brevi, concrete, ordinate e senza giri di parole. Una frase = un concetto. Usa esempi quotidiani, passaggi numerati e supporti solo quando sono didatticamente utili.
 Semplice NON significa banale: mantieni il nucleo disciplinare, la terminologia corretta e un livello adeguato alla classe. In 1a-2a privilegia concretezza e manipolazione; in 3a costruisci il ponte tra concreto e simbolico; in 4a-5a usa anche ragionamento, problemi, collegamenti e progressiva astrazione.
@@ -546,6 +547,11 @@ class H(BaseHTTPRequestHandler):
                     b.get('writing_type','')
                 )
                 return self.sendj({'ok':True,'result':result})
+            if p=='/api/privacy_check':
+                pin=str(b.get('pin') or '').strip()
+                if pin!=PRIVACY_PIN:
+                    return self.sendj({'ok':False,'error':'PIN non corretto'},403)
+                return self.sendj({'ok':True})
             if p=='/api/settings':
                 s=load_settings()
                 for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
