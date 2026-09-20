@@ -1,0 +1,36 @@
+MAESTRA GIORGIA AI - INSTALLAZIONE TRAMITE REPOSITORY GITHUB
+
+Perche: il tuo Supervisor non indicizza le app locali in /addons, anche dopo store reload, repair e restart.
+
+1. Crea su GitHub un NUOVO repository pubblico, per esempio:
+   maestra-giorgia-ai-home-assistant
+
+2. Dentro il repository devono stare ALLA RADICE:
+   repository.yaml
+   README.md
+   cartella maestra_giorgia_ai/
+
+3. Dentro maestra_giorgia_ai/ devono esserci:
+   config.yaml
+   Dockerfile
+   run.sh
+   app/
+   translations/
+   icon.png
+   logo.png
+   DOCS.md
+   README.md
+   CHANGELOG.md
+
+4. Copia l'URL del repository GitHub, per esempio:
+   https://github.com/TUO-UTENTE/maestra-giorgia-ai-home-assistant
+
+5. In Home Assistant apri:
+   Impostazioni → Applicazioni → Store → ⋮ → Repository
+   Incolla l'URL GitHub e salva.
+
+6. Fai Controlla aggiornamenti / ricarica lo Store.
+
+7. Cerca Maestra Giorgia AI e installa.
+
+NOTA: non caricare nello stesso repository file ZIP o cartelle duplicate dell'app.
