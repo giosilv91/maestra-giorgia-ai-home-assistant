@@ -62,7 +62,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 
 <section id="materials" class="page"><h2>Materiali didattici</h2><div class="card">
 <label>Alunno</label><select class="studentSelect" id="mStudent"></select><label>Tipo</label><select id="mKind"><option>Scheda operativa</option><option>Verifica</option><option>Attività semplificata</option><option>Mappa concettuale</option><option>Storia sociale</option><option>CAA / visuale</option></select>
-<label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button></div><div id="mResult" class="result"></div><button onclick="saveMaterial()">Salva in archivio</button></section>
+<label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button></div><div id="mResult" class="result"></div><div class="flex" style="flex-wrap:wrap;margin-top:12px"><button onclick="saveMaterial()">💾 Salva in archivio</button><button class="primary" onclick="saveMaterialPdf()">📄 Salva PDF sul dispositivo</button></div></section>
 
 <section id="evals" class="page"><h2>Valutazioni e rendimento</h2>
 <div class="card">
@@ -88,7 +88,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
   <div class="chart-card"><div class="chart-title">Trend nel tempo</div><div class="chart-sub">Voti numerici da 0 a 10 · orale e scritto separati</div><div id="trendChart" class="chart-wrap"></div><div class="legend"><span><i style="background:#5578e8"></i>Orale</span><span><i style="background:#e56ca7"></i>Scritta</span><span><i style="background:#8a78a5"></i>Altre prove</span></div></div>
   <div class="chart-card"><div class="chart-title">Media per materia</div><div class="chart-sub">Confronto di tutte le materie nel periodo selezionato</div><div id="subjectChart" class="chart-wrap"></div></div>
   <div class="flex" style="flex-wrap:wrap;margin-top:14px">
-    <button class="primary" onclick="printEvalReport()">🖨️ Stampa / salva PDF</button>
+    <button class="primary" onclick="saveEvalPdf()">📄 Salva PDF sul dispositivo</button>
     <span class="muted">Nel report escono solo nome e cognome, materie, tipo prova, voti e grafici. Nessun dato sensibile del profilo.</span>
   </div>
 </div>
@@ -134,7 +134,25 @@ async function post(p,b){return req(p,{method:'POST',body:JSON.stringify(b)})}
 async function saveStudent(){await post('/students',{name:sName.value,class_name:sClass.value,strengths:sStrengths.value,difficulties:sDiff.value,strategies:sStrategies.value,goals:sGoals.value});['sName','sClass','sStrengths','sDiff','sStrategies','sGoals'].forEach(x=>document.getElementById(x).value='');await loadStudents();}
 async function del(t,id){if(confirm('Eliminare?')){await req('/'+t+'/'+id,{method:'DELETE'});await init()}}
 async function genMaterial(){mResult.textContent='Maestra sta preparando il materiale…';let p='Crea '+mKind.value+' per scuola primaria. Argomento: '+mTopic.value+'. Inserisci obiettivo, consegna, attività, facilitazioni e soluzioni per la docente.';let j=await post('/ai',{student_id:mStudent.value||null,prompt:p});lastMaterial=j.text;mResult.textContent=j.text;}
-async function saveMaterial(){if(!lastMaterial)return;await post('/materials',{student_id:mStudent.value||null,kind:mKind.value,title:mKind.value+' - '+mTopic.value,content:lastMaterial});alert('Salvato');await counts();}
+async function saveMaterial(){if(!lastMaterial)return alert('Genera prima il materiale');await post('/materials',{student_id:mStudent.value||null,kind:mKind.value,title:mKind.value+' - '+mTopic.value,content:lastMaterial});alert('Salvato in archivio');await counts();}
+function pdfFilename(base){return String(base||'documento').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'').slice(0,90)+'.pdf'}
+async function downloadPdf(endpoint,payload,filename){
+  try{
+    const r=await fetch(api(endpoint),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok){const t=await r.text();throw new Error(t||'Errore PDF')}
+    const blob=await r.blob();
+    const file=new File([blob],filename,{type:'application/pdf'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:filename});return}catch(e){if(e.name!=='AbortError')console.warn(e)}
+    }
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},3000);
+  }catch(e){alert('Impossibile salvare il PDF: '+e.message)}
+}
+async function saveMaterialPdf(){
+  if(!lastMaterial)return alert('Genera prima il materiale');
+  const title=mKind.value+' - '+(mTopic.value||'materiale');
+  await downloadPdf('/material_pdf',{student_id:mStudent.value||null,kind:mKind.value,title,content:lastMaterial},pdfFilename(title));
+}
 function evalType(x){const a=(x.activity||'').trim().toLowerCase();const t=(x.eval_type||'').trim();if((!t||t==='Orale')&&(a.includes('verifica')||a==='scritta'||a==='scritto'))return'Scritta';if(t)return t;if(a.includes('oral')||a.includes('interrog'))return'Orale';return'Osservazione'}
 function cleanSubjectName(v){const raw=String(v||'Altro').trim().replace(/\s+/g,' ');return raw?raw.charAt(0).toUpperCase()+raw.slice(1):'Altro'}
 function gradeNum(x){const n=parseFloat(String(x.grade??'').replace(',','.').match(/\d+(?:[.,]\d+)?/)?.[0]||'');return Number.isFinite(n)?n:null}
@@ -187,11 +205,13 @@ function buildPrintReport(){
     '<div class="print-chart"><h2>Media per materia</h2>'+subjectSvg(items)+'</div>'+
     '<h2>Valutazioni</h2><table><thead><tr><th>Data</th><th>Materia</th><th>Tipo prova</th><th>Voto</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
-function printEvalReport(){
+async function saveEvalPdf(){
   if(!eStudent.value)return alert('Seleziona un alunno');
-  const report=buildPrintReport(); if(!report)return;
-  printReport.innerHTML=report;
-  setTimeout(()=>window.print(),80);
+  const st=students.find(s=>String(s.id)===String(eStudent.value)); if(!st)return;
+  const items=filteredEvals();
+  if(!items.length)return alert('Nessuna valutazione nel periodo selezionato');
+  const period=printPeriodLabel()+(eSubjectFilter.value?' · '+eSubjectFilter.value:'')+(eTypeFilter.value?' · '+eTypeFilter.value:'');
+  await downloadPdf('/evaluation_pdf',{student_id:eStudent.value,period_label:period,items},pdfFilename('Valutazioni_'+st.name));
 }
 async function loadEvals(){
   if(!eStudent.value){evalTable.innerHTML='';currentEvals=[];renderEvalCharts();return}
