@@ -1,3 +1,15 @@
+# 1.6.1
+- Nuovo blocco privacy con PIN per le aree che mostrano dati degli alunni.
+- PIN verificato dal backend e non inserito nell HTML.
+- Aree protette: Alunni, Materiali, Valutazioni, Obiettivi, Diario, Intervento, Fotocamera AI, Maestra e Impostazioni.
+- Sblocco valido 10 minuti nella sessione; poi ritorno automatico alla Home.
+- Tasto Blocca per richiudere subito le aree riservate.
+- Lavagna resa rettangolare 16:9 anche su smartphone.
+- Pannello strumenti superiore richiudibile con freccia.
+- Stato del pannello superiore ricordato sul dispositivo.
+- Nuova modalita Fullscreen per usare una lavagna piu grande.
+- Nessuna modifica ai dati gia salvati.
+
 # 1.6.0
 - Nuovo modulo Lavagna Interattiva touch.
 - Strumenti di scrittura: penna, matita, gesso, pennarello, evidenziatore, stilografica, pennello, neon, tratteggio e gomma.
