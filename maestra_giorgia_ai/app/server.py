@@ -517,7 +517,10 @@ class H(BaseHTTPRequestHandler):
                 audio=gemini_tts(b.get('text',''),voice)
                 self.send_response(200); self.send_header('Content-Type','audio/wav'); self.send_header('Content-Length',str(len(audio))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(audio); return
             if p=='/api/materials':
-                i=store.write('INSERT INTO materials(student_id,kind,title,content,created_at) VALUES(?,?,?,?,?)',(b.get('student_id'),b.get('kind','Materiale'),b.get('title','Materiale'),b.get('content',''),now)); return self.sendj({'ok':True,'id':i})
+                if b.get('id'):
+                    store.write('UPDATE materials SET student_id=?,kind=?,title=?,content=? WHERE id=?',(b.get('student_id'),b.get('kind','Materiale'),b.get('title','Materiale'),b.get('content',''),int(b['id'])))
+                    return self.sendj({'ok':True,'id':int(b['id']),'updated':True})
+                i=store.write('INSERT INTO materials(student_id,kind,title,content,created_at) VALUES(?,?,?,?,?)',(b.get('student_id'),b.get('kind','Materiale'),b.get('title','Materiale'),b.get('content',''),now)); return self.sendj({'ok':True,'id':i,'updated':False})
             if p=='/api/material_pdf':
                 sid=b.get('student_id'); student=store.one('SELECT name FROM students WHERE id=?',(sid,)) if sid else None
                 title=b.get('title') or b.get('kind') or 'Materiale'
