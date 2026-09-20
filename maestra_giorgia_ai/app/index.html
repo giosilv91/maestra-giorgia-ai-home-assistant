@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GM Maestra AI</title>
+<style>
+:root{--navy:#17345d;--blue:#5578e8;--pink:#fff1f5;--bg:#fbf8f8;--line:#e8dfe6}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--navy)}
+header{padding:18px 20px;background:#fff;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:24px;font-weight:800}.sub{font-size:12px;color:#7b6d78}
+nav{display:flex;gap:8px;padding:10px;overflow:auto;background:#fff;position:sticky;top:0;z-index:2}
+button,.btn,input,select,textarea{font:inherit}button{border:1px solid #ddd5df;background:white;border-radius:12px;padding:10px 13px;color:var(--navy);font-weight:650}button.primary{background:var(--blue);color:white;border-color:var(--blue)}
+main{padding:16px;max-width:1200px;margin:auto}.page{display:none}.page.active{display:block}
+.card{background:white;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}.hero{background:linear-gradient(135deg,#fff,#f3efff)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.stats{font-size:28px;font-weight:800;color:var(--blue)}
+label{display:block;font-size:12px;color:#776d7c;margin:8px 0 4px}input,select,textarea{width:100%;padding:10px;border:1px solid #ddd8e2;border-radius:10px;background:#fff}textarea{min-height:100px}
+table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+.voice{font-size:44px;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;background:#eee8ff;border:2px solid #d8caff}
+.flex{display:flex;gap:12px;align-items:center}.grow{flex:1}.muted{color:#7c899b;font-size:13px}.result{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:130px}
+@media(max-width:700px){header{align-items:flex-start}.grid{grid-template-columns:1fr}.hide-mobile{display:none}}
+</style></head><body>
+<header><div><div class="logo">♡ GM Maestra AI</div><div class="sub">Giorgia Mauro · Sostegno Primaria</div></div><div>Assistente: <b>Maestra</b></div></header>
+<nav>
+<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
+</nav>
+<main>
+<section id="home" class="page active">
+<div class="card hero"><div class="flex"><div class="voice">◉</div><div class="grow"><h2>Assistente: Maestra</h2><div class="muted">Pronta ad aiutarti con materiale, verifiche, valutazioni e attività semplificate.</div></div><button class="primary" onclick="show('assistant')">🎤 Parla con Maestra</button></div></div>
+<div class="grid"><div class="card"><div class="muted">Alunni</div><div id="nStudents" class="stats">0</div></div><div class="card"><div class="muted">Materiali</div><div id="nMaterials" class="stats">0</div></div><div class="card"><div class="muted">Obiettivi</div><div id="nGoals" class="stats">0</div></div></div>
+</section>
+
+<section id="students" class="page"><h2>Alunni</h2><div class="card grid">
+<div><label>Nome</label><input id="sName"><label>Classe</label><input id="sClass" placeholder="Classe 3ª"></div>
+<div><label>Punti di forza</label><textarea id="sStrengths"></textarea><label>Difficoltà osservate</label><textarea id="sDiff"></textarea></div>
+<div><label>Strategie efficaci</label><textarea id="sStrategies"></textarea><label>Obiettivi generali</label><textarea id="sGoals"></textarea></div>
+</div><button class="primary" onclick="saveStudent()">+ Salva alunno</button><div class="card"><table><thead><tr><th>Nome</th><th>Classe</th><th></th></tr></thead><tbody id="studentsTable"></tbody></table></div></section>
+
+<section id="materials" class="page"><h2>Materiali didattici</h2><div class="card">
+<label>Alunno</label><select class="studentSelect" id="mStudent"></select><label>Tipo</label><select id="mKind"><option>Scheda operativa</option><option>Verifica</option><option>Attività semplificata</option><option>Mappa concettuale</option><option>Storia sociale</option><option>CAA / visuale</option></select>
+<label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button></div><div id="mResult" class="result"></div><button onclick="saveMaterial()">Salva in archivio</button></section>
+
+<section id="evals" class="page"><h2>Valutazioni</h2><div class="card grid"><div><label>Alunno</label><select class="studentSelect" id="eStudent" onchange="loadEvals()"></select><label>Materia</label><input id="eSubject"></div><div><label>Attività / verifica</label><input id="eActivity"><label>Voto / giudizio</label><input id="eGrade"></div><div><label>Autonomia 1-5</label><input type="number" min="1" max="5" value="3" id="eAut"><label>Note</label><textarea id="eNotes"></textarea></div></div><button class="primary" onclick="saveEval()">Aggiungi valutazione</button><div class="card"><table><tbody id="evalTable"></tbody></table></div></section>
+
+<section id="goals" class="page"><h2>Obiettivi</h2><div class="card"><label>Alunno</label><select class="studentSelect" id="gStudent" onchange="loadGoals()"></select><label>Area</label><input id="gArea" placeholder="Autonomia / Apprendimento"><label>Obiettivo</label><input id="gDesc"><label>Stato</label><select id="gStatus"><option>Da iniziare</option><option>In corso</option><option>Parzialmente raggiunto</option><option>Raggiunto</option><option>Consolidato</option></select><label>Note / evidenze</label><textarea id="gNotes"></textarea><button class="primary" onclick="saveGoal()">Salva obiettivo</button></div><div class="card"><table><tbody id="goalTable"></tbody></table></div></section>
+
+<section id="diary" class="page"><h2>Diario didattico</h2><div class="card"><label>Alunno</label><select class="studentSelect" id="dStudent" onchange="loadDiary()"></select><label>Categoria</label><input id="dCat" value="Apprendimento"><label>Nota</label><textarea id="dText"></textarea><div class="grid"><div><label>Partecipazione 1-5</label><input id="dPart" type="number" min="1" max="5" value="3"></div><div><label>Supporto 1-5</label><input id="dSupp" type="number" min="1" max="5" value="3"></div></div><button class="primary" onclick="saveDiary()">Salva nel diario</button></div><div class="card"><table><tbody id="diaryTable"></tbody></table></div></section>
+
+<section id="assistant" class="page"><h2>Maestra</h2><div class="card"><label>Alunno (facoltativo)</label><select class="studentSelect" id="aStudent"></select><label>Chiedi a Maestra</label><textarea id="aPrompt" placeholder="Es. Preparami una verifica semplificata sulle addizioni..."></textarea><button class="primary" onclick="askAI()">✨ Invia</button><button onclick="dictate()">🎤 Detta</button><button onclick="speakResult()">🔊 Leggi risposta</button></div><div id="aResult" class="result"></div></section>
+
+<section id="settings" class="page"><h2>Impostazioni</h2><div class="card"><label>Nome docente</label><input id="setTeacher" value="Giorgia Mauro"><label>Nome assistente</label><input id="setAssistant" value="Maestra"><label>Modello Gemini</label><input id="setModel" value="gemini-3.8-flash"><label>Gemini API key</label><input id="setKey" type="password" placeholder="Incolla la chiave Google AI Studio"><div class="flex"><button class="primary" onclick="saveSettings()">Salva</button><button onclick="testAI()">Test Gemini</button><button onclick="removeKey()">Rimuovi chiave</button></div><div id="setStatus" class="muted"></div></div></section>
+</main>
+<script>
+const base=location.pathname.replace(/\/$/,''); const api=p=>base+'/api'+p;
+async function req(p,opt={}){let r=await fetch(api(p),{headers:{'Content-Type':'application/json'},...opt});let j=await r.json();if(!j.ok)throw new Error(j.error||'Errore');return j}
+function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
+let students=[],lastMaterial='';
+async function loadStudents(){let j=await req('/students');students=j.items;document.getElementById('nStudents').textContent=students.length;let opts='<option value="">—</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+' · '+esc(s.class_name||'')+'</option>').join('');document.querySelectorAll('.studentSelect').forEach(x=>x.innerHTML=opts);document.getElementById('studentsTable').innerHTML=students.map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+esc(s.class_name||'')+'</td><td><button onclick="del(\'students\','+s.id+')">Elimina</button></td></tr>').join('');}
+function esc(x){return String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+async function post(p,b){return req(p,{method:'POST',body:JSON.stringify(b)})}
+async function saveStudent(){await post('/students',{name:sName.value,class_name:sClass.value,strengths:sStrengths.value,difficulties:sDiff.value,strategies:sStrategies.value,goals:sGoals.value});['sName','sClass','sStrengths','sDiff','sStrategies','sGoals'].forEach(x=>document.getElementById(x).value='');await loadStudents();}
+async function del(t,id){if(confirm('Eliminare?')){await req('/'+t+'/'+id,{method:'DELETE'});await init()}}
+async function genMaterial(){mResult.textContent='Maestra sta preparando il materiale…';let p='Crea '+mKind.value+' per scuola primaria. Argomento: '+mTopic.value+'. Inserisci obiettivo, consegna, attività, facilitazioni e soluzioni per la docente.';let j=await post('/ai',{student_id:mStudent.value||null,prompt:p});lastMaterial=j.text;mResult.textContent=j.text;}
+async function saveMaterial(){if(!lastMaterial)return;await post('/materials',{student_id:mStudent.value||null,kind:mKind.value,title:mKind.value+' - '+mTopic.value,content:lastMaterial});alert('Salvato');await counts();}
+async function saveEval(){await post('/evaluations',{student_id:eStudent.value,subject:eSubject.value,activity:eActivity.value,grade:eGrade.value,autonomy:+eAut.value,notes:eNotes.value});await loadEvals()}
+async function loadEvals(){if(!eStudent.value)return evalTable.innerHTML='';let j=await req('/evaluations?student_id='+eStudent.value);evalTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.eval_date)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(x.activity)+'</td><td>'+esc(x.grade)+'</td><td>'+x.autonomy+'/5</td><td><button onclick="del(\'evaluations\','+x.id+')">X</button></td></tr>').join('')}
+async function saveGoal(){await post('/goals',{student_id:gStudent.value,area:gArea.value,description:gDesc.value,status:gStatus.value,notes:gNotes.value});await loadGoals()}
+async function loadGoals(){if(!gStudent.value)return goalTable.innerHTML='';let j=await req('/goals?student_id='+gStudent.value);goalTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.area)+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.status)+'</td><td><button onclick="del(\'goals\','+x.id+')">X</button></td></tr>').join('');document.getElementById('nGoals').textContent=j.items.length}
+async function saveDiary(){await post('/diary',{student_id:dStudent.value,category:dCat.value,text:dText.value,participation:+dPart.value,support_level:+dSupp.value});dText.value='';await loadDiary()}
+async function loadDiary(){if(!dStudent.value)return diaryTable.innerHTML='';let j=await req('/diary?student_id='+dStudent.value);diaryTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.diary_date)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.text)+'</td><td>'+x.participation+'/5</td></tr>').join('')}
+async function askAI(){aResult.textContent='Maestra sta pensando…';let j=await post('/ai',{student_id:aStudent.value||null,prompt:aPrompt.value});aResult.textContent=j.text}
+function speakResult(){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(aResult.textContent))}
+function dictate(){let R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return alert('Dettatura non supportata da questo browser');let r=new R();r.lang='it-IT';r.onresult=e=>aPrompt.value+=(aPrompt.value?' ':'')+e.results[0][0].transcript;r.start()}
+async function saveSettings(){await post('/settings',{teacher_name:setTeacher.value,assistant_name:setAssistant.value,gemini_model:setModel.value,gemini_api_key:setKey.value});setKey.value='';await status();alert('Impostazioni salvate')}
+async function testAI(){setStatus.textContent='Test…';try{let j=await post('/test_ai',{});setStatus.textContent=j.text}catch(e){setStatus.textContent=e.message}}
+async function removeKey(){await post('/settings',{remove_gemini_key:true});await status()}
+async function status(){let j=await req('/status');setTeacher.value=j.settings.teacher_name||'Giorgia Mauro';setAssistant.value=j.settings.assistant_name||'Maestra';setModel.value=j.settings.gemini_model||'gemini-3.8-flash';setStatus.textContent='Gemini API key: '+(j.settings.gemini_api_key?'configurata':'non configurata')}
+async function counts(){let j=await req('/materials');nMaterials.textContent=j.items.length}
+async function init(){try{await loadStudents();await counts();await status()}catch(e){alert(e.message)}}
+init();
+</script></body></html>
