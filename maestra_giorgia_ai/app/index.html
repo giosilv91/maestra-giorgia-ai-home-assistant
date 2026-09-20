@@ -34,7 +34,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
   #printReport svg{width:100%!important;min-width:0!important;height:auto!important}
   #printReport .private-note{display:none!important}
 }
-.visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}.camera-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.camera-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.camera-preview{margin-top:10px;border:1px dashed #cdc3df;border-radius:16px;min-height:120px;background:#faf8fd;display:flex;align-items:center;justify-content:center;overflow:hidden}.camera-preview img,.camera-preview canvas{max-width:100%;height:auto;display:block}.camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.camera-note{font-size:12px;color:#7c899b;margin-top:6px}.vision-block h3{margin:14px 0 6px}.vision-block ul{margin:6px 0;padding-left:20px}.vision-block li{margin:5px 0}
+.visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}.camera-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.camera-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.camera-preview{margin-top:10px;border:1px dashed #cdc3df;border-radius:16px;min-height:120px;background:#faf8fd;display:flex;align-items:center;justify-content:center;overflow:hidden}.camera-preview img,.camera-preview canvas{max-width:100%;height:auto;display:block}.camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.camera-note{font-size:12px;color:#7c899b;margin-top:6px}.vision-block h3{margin:14px 0 6px}.vision-block ul{margin:6px 0;padding-left:20px}.vision-block li{margin:5px 0}.cam-modal{position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px}.cam-modal.open{display:flex}.cam-shell{width:min(760px,100%);background:#111;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}.cam-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:white}.cam-video{width:100%;max-height:72vh;background:#000;object-fit:contain;display:block}.cam-controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:14px;background:#171717}.cam-controls button{min-width:120px}.cam-title{font-weight:800}.file-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.file-row input{flex:1;min-width:180px}
 </style></head><body>
 <div id="splash">
   <div class="splashbox">
@@ -151,8 +151,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <h3>📖 Libro AI</h3>
 <div class="muted">Fotografa la copertina e, per un riassunto fedele, anche le pagine da leggere.</div>
 <label>Alunno (facoltativo)</label><select class="studentSelect" id="bookStudent"></select>
-<label>Copertina</label><input id="bookCover" type="file" accept="image/*" capture="environment">
-<label>Pagine interne (facoltative)</label><input id="bookPages" type="file" accept="image/*" capture="environment" multiple>
+<label>Copertina</label><div class="file-row"><button class="primary" onclick="openCamera('book-cover')">📷 Scatta copertina</button><input id="bookCover" type="file" accept="image/*" capture="environment"></div>
+<label>Pagine interne (facoltative)</label><div class="file-row"><button onclick="openCamera('book-page')">📷 Aggiungi pagina</button><input id="bookPages" type="file" accept="image/*" capture="environment" multiple></div>
 <div id="bookPreview" class="camera-preview">Nessuna foto.</div>
 <div class="camera-actions"><button class="primary" onclick="analyzeBook()">✨ Analizza libro</button><button onclick="saveBookPdf()">📄 Salva PDF</button><button onclick="saveBookImage()">🖼️ Salva copertina</button></div>
 <div id="bookResult" class="result vision-block" style="margin-top:12px">Qui comparirà il riassunto.</div>
@@ -163,7 +163,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="muted">Maestra segnala solo gli errori chiaramente visibili e li evidenzia sulla foto quando possibile.</div>
 <label>Alunno</label><select class="studentSelect" id="hwStudent"></select>
 <div class="grid"><div><label>Materia</label><select id="hwSubject"><option>Italiano</option><option>Matematica</option><option>Storia</option><option>Geografia</option><option>Scienze</option><option>Inglese</option><option>Altro</option></select></div><div><label>Tipo</label><select id="hwType"><option>Compito libero</option><option>Verifica</option><option>Dettato</option><option>Copia</option><option>Comprensione</option><option>Calcolo</option></select></div></div>
-<label>Foto compito</label><input id="hwPhoto" type="file" accept="image/*" capture="environment">
+<label>Foto compito</label><div class="file-row"><button class="primary" onclick="openCamera('homework')">📷 Scatta compito</button><input id="hwPhoto" type="file" accept="image/*" capture="environment"></div>
 <div id="hwPreview" class="camera-preview">Scatta una foto del foglio o del quaderno.</div>
 <div class="camera-actions"><button class="primary" onclick="analyzeHomework()">🔍 Controlla</button><button onclick="saveHomeworkImage()">🖼️ Salva con errori</button><button onclick="saveHomeworkPdf()">📄 Salva PDF</button></div>
 <div id="hwResult" class="result vision-block" style="margin-top:12px">Qui compariranno errori, correzioni e mini recupero.</div>
@@ -174,7 +174,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="muted">Osservazione didattica/grafomotoria: leggibilità, spaziatura, rigo, forma e regolarità. Nessuna diagnosi o lettura della personalità.</div>
 <label>Alunno</label><select class="studentSelect" id="handStudent"></select>
 <label>Tipo scrittura</label><select id="handType"><option>Corsivo</option><option>Stampato maiuscolo</option><option>Stampato minuscolo</option><option>Numeri</option><option>Copia</option><option>Testo libero</option></select>
-<label>Foto scrittura</label><input id="handPhoto" type="file" accept="image/*" capture="environment">
+<label>Foto scrittura</label><div class="file-row"><button class="primary" onclick="openCamera('handwriting')">📷 Scatta scrittura</button><input id="handPhoto" type="file" accept="image/*" capture="environment"></div>
 <div id="handPreview" class="camera-preview">Scatta una foto nitida della scrittura.</div>
 <div class="camera-actions"><button class="primary" onclick="analyzeHandwriting()">✨ Analizza grafia</button><button onclick="saveHandImage()">🖼️ Salva foto</button><button onclick="saveHandPdf()">📄 Salva PDF</button></div>
 <div id="handResult" class="result vision-block" style="margin-top:12px">Qui compariranno osservazioni e esercizi pratici.</div>
@@ -197,12 +197,23 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="saveSettings()">Salva</button><button onclick="testAI()">Test AI</button><button onclick="removeKey()">Rimuovi chiave</button><button onclick="previewVoice()">🔊 Prova voce</button></div>
 <div id="setStatus" class="muted" style="margin-top:10px"></div></div></section>
 </main>
+<div id="cameraModal" class="cam-modal" aria-hidden="true">
+  <div class="cam-shell">
+    <div class="cam-top"><div id="camTitle" class="cam-title">📷 Fotocamera Maestra</div><button onclick="closeCamera()">✕ Chiudi</button></div>
+    <video id="liveCamera" class="cam-video" autoplay playsinline muted></video>
+    <div class="cam-controls">
+      <button onclick="switchCamera()">🔄 Cambia camera</button>
+      <button class="primary" onclick="captureCamera()">📸 Scatta</button>
+      <button onclick="closeCamera()">Chiudi</button>
+    </div>
+  </div>
+</div>
 <div id="printReport"></div>
 <script>
 const base=location.pathname.replace(/\/$/,''); const api=p=>base+'/api'+p;
 async function req(p,opt={}){const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),210000);try{let r=await fetch(api(p),{headers:{'Content-Type':'application/json'},signal:ctl.signal,...opt});let j=await r.json();if(!j.ok)throw new Error(j.error||'Errore');return j}finally{clearTimeout(timer)}}
 function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
-let students=[],lastMaterial='',currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null;
+let students=[],lastMaterial='',currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookCameraCover=null,bookCameraPages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null,cameraStream=null,cameraTarget='',cameraFacing='environment';
 const GEMINI_VOICES=[
  ['Kore','Kore · ferma'],['Aoede','Aoede · ariosa'],['Leda','Leda · giovane'],['Despina','Despina · morbida'],['Erinome','Erinome · chiara'],['Achernar','Achernar · delicata'],['Vindemiatrix','Vindemiatrix · gentile'],['Sulafat','Sulafat · calda'],['Callirrhoe','Callirrhoe · rilassata'],['Laomedeia','Laomedeia · vivace'],['Autonoe','Autonoe · luminosa'],['Pulcherrima','Pulcherrima · decisa']
 ];
