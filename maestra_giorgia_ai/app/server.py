@@ -123,7 +123,7 @@ def gemini(prompt,context=''):
 
 def _extract_json(text):
     raw=str(text or '').strip()
-    raw=raw.replace('\`\`\`json','').replace('\`\`\`JSON','').replace('\`\`\`','').strip()
+    raw=raw.replace('```json','').replace('```JSON','').replace('```','').strip()
     start=raw.find('{'); end=raw.rfind('}')
     if start<0 or end<start:
         raise RuntimeError('Gemini non ha restituito JSON valido')
