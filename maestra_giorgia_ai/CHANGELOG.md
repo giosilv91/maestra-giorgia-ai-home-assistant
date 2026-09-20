@@ -1,3 +1,12 @@
+# 1.3.0
+- Eliminata la doppia colonna Orale/Orale nel registro: resta un solo Tipo prova.
+- Migrazione automatica dei vecchi record: Verifica viene riconosciuta come Scritta.
+- Data della valutazione selezionabile anche per giorni precedenti o futuri.
+- Pulsante Modifica per correggere data, materia, tipo prova, voto, autonomia e note.
+- Report stampabile/PDF con solo nome e cognome, periodo, grafici, materie, tipo prova e voti.
+- Difficoltà, strategie, PEI e note private non vengono mai incluse nel report di stampa.
+- Normalizzazione nomi materia per evitare barre duplicate nei grafici.
+
 # 1.2.0
 - Gemini TTS reale con voci selezionabili, indipendente dalle voci del browser Android.
 - Lettura automatica opzionale delle risposte.
