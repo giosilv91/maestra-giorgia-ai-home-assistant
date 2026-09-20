@@ -67,7 +67,7 @@ def gemini(prompt,context=''):
 
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
-    def path(self): return urlparse(self.path).path
+    def route_path(self): return urlparse(self.path).path
     def json(self):
         n=int(self.headers.get('Content-Length','0')); raw=self.rfile.read(n) if n else b'{}'
         return json.loads(raw.decode() or '{}')
@@ -78,7 +78,7 @@ class H(BaseHTTPRequestHandler):
         raw=INDEX.read_bytes(); self.send_response(200); self.send_header('Content-Type','text/html; charset=utf-8'); self.send_header('Content-Length',str(len(raw))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(raw)
     def do_GET(self):
         try:
-            p=self.path()
+            p=self.route_path()
             if p=='/' or not p.startswith('/api/'): return self.html()
             q=parse_qs(urlparse(self.path).query); sid=q.get('student_id',[None])[0]
             if p=='/api/status':
@@ -92,7 +92,7 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:return self.sendj({'ok':False,'error':str(e)},500)
     def do_POST(self):
         try:
-            p=self.path(); b=self.json(); now=datetime.now().isoformat(timespec='seconds')
+            p=self.route_path(); b=self.json(); now=datetime.now().isoformat(timespec='seconds')
             if p=='/api/students':
                 if b.get('id'):
                     store.write('UPDATE students SET name=?,class_name=?,strengths=?,difficulties=?,strategies=?,goals=? WHERE id=?',(b.get('name',''),b.get('class_name',''),b.get('strengths',''),b.get('difficulties',''),b.get('strategies',''),b.get('goals',''),b['id'])); i=b['id']
@@ -126,7 +126,7 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:return self.sendj({'ok':False,'error':str(e)},400)
     def do_DELETE(self):
         try:
-            a=self.path().strip('/').split('/')
+            a=self.route_path().strip('/').split('/')
             mp={'students':'students','evaluations':'evaluations','goals':'goals','diary':'diary','materials':'materials'}
             if len(a)!=3 or a[1] not in mp:return self.sendj({'ok':False,'error':'Risorsa non valida'},404)
             store.write(f'DELETE FROM {mp[a[1]]} WHERE id=?',(int(a[2]),)); return self.sendj({'ok':True})
