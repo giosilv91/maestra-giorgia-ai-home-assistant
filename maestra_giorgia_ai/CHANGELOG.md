@@ -1,3 +1,13 @@
+# 1.5.5
+- Adattamento didattico professionale dalla classe 1a alla 5a primaria.
+- Maestra usa classe, punti di forza, difficolta osservate, strategie efficaci e obiettivi per calibrare struttura e carico senza abbassare automaticamente il livello curricolare.
+- Nuovo Supporto didattico: Automatico, Nessuno, Figure/rappresentazioni, Schema, Figure + schema.
+- In Automatico i supporti vengono usati solo se migliorano davvero la comprensione dell argomento.
+- 1a-2a: maggiore concretezza; 3a: ponte concreto-simbolico; 4a-5a: terminologia disciplinare, ragionamento, problemi, collegamenti e progressiva astrazione.
+- Eliminati i suggerimenti rapidi troppo banali; sostituiti con esercizi graduati, ragionamento, riduzione del carico verbale, procedura e controllo finale.
+- Le difficolta private del profilo non compaiono mai nel materiale consegnato all alunno.
+- Mappe concettuali rese piu professionali e adeguate alla classe.
+
 # 1.5.4
 - Archivio materiali completo nella pagina Materiali.
 - Ogni materiale salvato puo essere aperto, modificato, rinominato, esportato in PDF o eliminato.
