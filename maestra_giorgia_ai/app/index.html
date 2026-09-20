@@ -67,10 +67,12 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <label>Alunno</label><select class="studentSelect" id="mStudent"></select>
 <label>Tipo</label><select id="mKind"><option>Scheda operativa</option><option>Verifica</option><option>Attività semplificata</option><option>Mappa concettuale</option><option>Storia sociale</option><option>CAA / visuale</option></select>
 <label>Livello di spiegazione</label><select id="mLevel"><option value="molto semplice">Molto semplice</option><option value="semplice" selected>Semplice</option><option value="standard">Standard</option></select>
+<label>Supporto didattico</label><select id="mVisualMode"><option value="auto" selected>Automatico — decide Maestra</option><option value="none">Nessun supporto aggiuntivo</option><option value="figure">Figure / rappresentazioni</option><option value="schema">Schema</option><option value="both">Figure + schema</option></select>
+<div class="muted">In Automatico Maestra usa figure o schemi solo quando migliorano davvero la comprensione dell'argomento.</div>
 <label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti">
 <label>Titolo archivio</label><input id="mTitle" placeholder="Se vuoto: Tipo - Argomento">
-<label>Modifiche richieste / personalizzazione</label><input id="mChanges" placeholder="Es. usa mele, usa euro, fai frasi più corte...">
-<div class="chip-row"><button onclick="addMaterialChange('Usa mele negli esempi')">🍎 Mele</button><button onclick="addMaterialChange('Usa euro negli esempi, non dollari')">💶 Euro</button><button onclick="addMaterialChange('Spiega ancora più semplice')">🧒 Più semplice</button><button onclick="addMaterialChange('Fai il testo più corto')">✂️ Più corto</button><button onclick="addMaterialChange('Aggiungi esercizi in più')">📝 Più esercizi</button></div>
+<label>Indicazioni della docente</label><input id="mChanges" placeholder="Es. aumenta il ragionamento, usa un contesto concreto, aggiungi un problema finale...">
+<div class="chip-row"><button onclick="addMaterialChange('Proponi esercizi graduati dal consolidamento all applicazione')">📈 Esercizi graduati</button><button onclick="addMaterialChange('Inserisci un problema o compito di realta adeguato alla classe')">🧠 Ragionamento</button><button onclick="addMaterialChange('Riduci il carico verbale senza ridurre il contenuto disciplinare')">🎯 Meno carico verbale</button><button onclick="addMaterialChange('Usa una procedura passo passo solo dove serve')">🪜 Procedura</button><button onclick="addMaterialChange('Inserisci una breve verifica finale di comprensione')">✅ Controllo finale</button></div>
 <div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button><button onclick="regenerateMaterial()">🔁 Rigenera con modifiche</button><button onclick="genVisualMap()">🧩 Crea schema visuale</button><button onclick="newMaterial()">＋ Nuovo</button></div>
 <div class="muted" style="margin-top:10px">Le informazioni private del profilo servono solo ad adattare il livello: non vengono scritte nel materiale per il bambino.</div>
 </div>
@@ -258,21 +260,37 @@ function addMaterialChange(text){
 function currentMaterialTitle(){
   return (document.getElementById('mTitle').value||'').trim() || (document.getElementById('mKind').value+' - '+(document.getElementById('mTopic').value||'materiale'));
 }
+function selectedMaterialStudent(){
+  const id=document.getElementById('mStudent').value;
+  return students.find(s=>String(s.id)===String(id))||null;
+}
 function materialPrompt(){
   const topic=document.getElementById('mTopic').value.trim();
   const kind=document.getElementById('mKind').value;
   const level=document.getElementById('mLevel').value;
+  const visualMode=document.getElementById('mVisualMode').value;
   const changes=document.getElementById('mChanges').value.trim();
+  const st=selectedMaterialStudent();
+  const className=st?.class_name||'classe primaria non specificata';
   const formats={
-    'Scheda operativa':'Titolo; SPIEGO in massimo 3 frasi; 1 esempio concreto; 5 esercizi brevi; SOLUZIONI finali.',
-    'Verifica':'Titolo; consegna semplice; 6-8 domande graduate; spazio risposta; SOLUZIONI finali per la docente.',
-    'Attività semplificata':'Obiettivo in una frase; 4 passaggi numerati; esempio; attività breve; rinforzo finale.',
-    'Mappa concettuale':'Massimo 100 parole: concetto centrale e 4-6 idee chiave. Niente paragrafi lunghi.',
-    'Storia sociale':'Frasi brevi in prima persona; situazione; cosa posso fare; cosa succede dopo; massimo 10 frasi.',
-    'CAA / visuale':'Sequenza di 4-6 passaggi, una frase molto breve per passaggio, con emoji o simbolo suggerito.'
+    'Scheda operativa':'Costruisci una scheda didattica con spiegazione essenziale, esempio, esercizi graduati e soluzioni per la docente.',
+    'Verifica':'Costruisci una verifica coerente con la classe, con prove graduate e soluzioni per la docente. Evita esercizi ripetitivi inutili.',
+    'Attività semplificata':'Mantieni il nucleo disciplinare dell argomento ma riduci il carico estraneo: consegne chiare, passaggi gestibili e attività significativa.',
+    'Mappa concettuale':'Organizza i concetti con gerarchia corretta, parole chiave e relazioni. Non ridurre tutto a slogan.',
+    'Storia sociale':'Usa una struttura breve, concreta e rispettosa, adatta alla situazione richiesta.',
+    'CAA / visuale':'Usa supporti simbolici e sequenze solo se pertinenti all obiettivo didattico.'
   };
-  let p='Crea '+kind+' per scuola primaria. Argomento: '+topic+'. Livello: '+level+'. '+formats[kind]+' Regole fisse: linguaggio chiarissimo e conciso; una frase un concetto; esempi quotidiani; NON citare difficolta, diagnosi, comportamenti, strategie private o note del profilo dell alunno. Usa il profilo solo per adattare silenziosamente il livello.';
-  if(changes)p+=' MODIFICHE RICHIESTE DALLA DOCENTE: '+changes+'. Rispetta queste modifiche esattamente.';
+  const gradePolicy='CALIBRAZIONE PER ETA: 1a-2a primaria: maggiore concretezza, manipolazione, quantità e consegne brevi; 3a: ponte tra concreto e rappresentazione simbolica; 4a-5a: linguaggio disciplinare corretto, procedure motivate, problemi, ragionamento, collegamenti e progressiva astrazione. Semplice NON significa banale e non devi infantilizzare un alunno di quarta o quinta.';
+  const adaptation='ADATTAMENTO PROFESSIONALE: usa il profilo dell alunno fornito dal sistema per modulare carico cognitivo, numero di passaggi, quantità di testo, grado di astrazione, tipo di consegna, esempi e supporti. Mantieni l obiettivo curricolare quando possibile. Sfrutta i punti di forza. Le difficolta e le note private NON devono comparire nel materiale consegnato al bambino.';
+  const visualRules={
+    auto:'SUPPORTO: decidi tu se servono figure, rappresentazioni o schema. Usali solo se aumentano la comprensione dell argomento; se non servono, non inserirli.',
+    none:'SUPPORTO: non aggiungere figure o schemi; punta su testo, esercizi e ragionamento.',
+    figure:'SUPPORTO: prevedi figure o rappresentazioni didattiche pertinenti all argomento (es. linea dei numeri, diagramma, tabella, modello geometrico, rappresentazione di quantita). Devono avere una funzione didattica precisa, non decorativa.',
+    schema:'SUPPORTO: prevedi uno schema strutturato e gerarchico pertinente all argomento, con relazioni chiare tra concetti o passaggi.',
+    both:'SUPPORTO: prevedi sia figure/rappresentazioni sia uno schema, ma senza duplicare informazioni. Ognuno deve svolgere una funzione diversa.'
+  };
+  let p='Crea '+kind+' per '+className+'. Argomento: '+topic+'. Livello di spiegazione richiesto: '+level+'. '+formats[kind]+' '+gradePolicy+' '+adaptation+' '+visualRules[visualMode]+' REGOLE: sii concisa ma completa; usa terminologia scolastica corretta; costruisci esercizi progressivi (comprensione, applicazione, consolidamento e, se adeguato, trasferimento/ragionamento); evita esempi infantili non necessari; non usare dollari salvo richiesta, usa contesti italiani o neutri quando servono misure/denaro.';
+  if(changes)p+=' INDICAZIONI SPECIFICHE DELLA DOCENTE: '+changes+'. Rispettale senza compromettere correttezza didattica e livello di classe.';
   return p;
 }
 async function genMaterial(){
@@ -282,7 +300,7 @@ async function genMaterial(){
     const j=await post('/ai',{student_id:document.getElementById('mStudent').value||null,prompt:materialPrompt()});
     lastMaterial=j.text||'';document.getElementById('mResult').textContent=lastMaterial||'Nessuna risposta';
     document.getElementById('mEditor').value=lastMaterial;
-    if(document.getElementById('mKind').value==='Mappa concettuale')await genVisualMap();
+    const vm=document.getElementById('mVisualMode').value;if(document.getElementById('mKind').value==='Mappa concettuale'||vm==='schema'||vm==='both')await genVisualMap();
   }catch(e){document.getElementById('mResult').textContent='Errore: '+e.message}
 }
 async function regenerateMaterial(){
@@ -304,7 +322,7 @@ function applyMaterialEdits(){
 function cancelMaterialEdits(){document.getElementById('mEditor').value=lastMaterial;document.getElementById('materialEditPanel').style.display='none'}
 function newMaterial(){
   editingMaterialId=null;document.getElementById('mEditId').value='';lastMaterial='';currentMap=null;
-  document.getElementById('mTopic').value='';document.getElementById('mTitle').value='';document.getElementById('mChanges').value='';
+  document.getElementById('mTopic').value='';document.getElementById('mTitle').value='';document.getElementById('mChanges').value='';document.getElementById('mVisualMode').value='auto';
   document.getElementById('mResult').textContent='';document.getElementById('mEditor').value='';document.getElementById('materialEditPanel').style.display='none';
   document.getElementById('materialSaveBtn').textContent='💾 Salva in archivio';renderVisualMap();
 }
