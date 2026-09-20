@@ -5,11 +5,15 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 DATA=Path('/data'); DATA.mkdir(parents=True,exist_ok=True)
+MANUAL_DIR=DATA/'manuals'; MANUAL_DIR.mkdir(parents=True,exist_ok=True)
 DB=DATA/'maestra_giorgia_ai.db'; SETTINGS=DATA/'settings.json'
 INDEX=Path(__file__).with_name('index.html'); PORT=8099
 PROMPT="""Sei Maestra, assistente AI professionale di Giorgia Mauro per il sostegno nella scuola primaria italiana.
-Rispondi in italiano, in modo pratico, inclusivo e rispettoso. Non inventare voti, diagnosi o progressi.
-Quando crei materiali indica obiettivo, consegna, facilitazioni e soluzione per la docente."""
+La priorita assoluta e farti capire: risposte brevi, concrete, ordinate e senza giri di parole. Una frase = un concetto. Usa esempi quotidiani, passaggi numerati, parole semplici e supporti visivi quando aiutano.
+Per materiali rivolti all'alunno/a: NON citare mai difficolta, diagnosi, comportamenti, strategie private, note del profilo o altre informazioni riservate. Usa quel contesto solo per adattare silenziosamente livello, lunghezza e modalita di spiegazione.
+Per la docente distingui quando utile: COSA SPIEGARE, COME DIRLO, ESEMPIO, SUPPORTO VISIVO, COSA OSSERVARE. Non inventare voti, diagnosi, leggi o fatti non forniti.
+Se una richiesta riguarda normativa o procedure aggiornate, tratta il testo/manuale fornito come fonte primaria e segnala quando serve verificare una fonte ufficiale.
+Sii inclusiva, non stigmatizzante, pratica e molto concisa."""
 
 class Store:
     def __init__(self):
@@ -24,6 +28,7 @@ class Store:
             CREATE TABLE IF NOT EXISTS goals(id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,area TEXT,description TEXT,status TEXT,notes TEXT,updated_at TEXT,FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE);
             CREATE TABLE IF NOT EXISTS diary(id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,diary_date TEXT,category TEXT,text TEXT,participation INTEGER,support_level INTEGER,FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE);
             CREATE TABLE IF NOT EXISTS materials(id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER,kind TEXT,title TEXT,content TEXT,created_at TEXT);
+            CREATE TABLE IF NOT EXISTS manuals(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,category TEXT,manual_date TEXT,source_url TEXT,tags TEXT,summary TEXT,content TEXT,attachment_name TEXT,attachment_path TEXT,created_at TEXT,updated_at TEXT);
             """)
             self.db.commit()
             cols=[r[1] for r in self.db.execute("PRAGMA table_info(evaluations)").fetchall()]
