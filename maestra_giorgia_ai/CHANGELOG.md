@@ -1,3 +1,17 @@
+# 1.5.0
+- Nuovo modulo Libro AI con fotocamera/copertina e fino a 6 immagini/pagine.
+- Gemini Vision riconosce titolo/autore quando leggibili e riassume solo le pagine realmente fotografate.
+- Riassunto breve, versione facilitata, parole chiave, domande e mappa veloce.
+- Nuovo modulo Analizza compiti con foto da fotocamera, Italiano/Matematica e altre materie.
+- Evidenzia sull'immagine le zone degli errori quando sono chiaramente localizzabili.
+- Correzioni concise, spiegazione per il bambino e mini esercizio di recupero.
+- Salvataggio PNG dell'immagine con errori evidenziati.
+- Nuovo modulo Calligrafia per osservazione didattica/grafomotoria: leggibilita, spaziatura, rigo, forma, regolarita e esercizi.
+- La calligrafia non viene usata per dedurre personalita, diagnosi, intelligenza o condizioni cliniche.
+- Archivio persistente per analisi libri, compiti e calligrafia.
+- PDF diretti sul dispositivo con immagini JPEG incorporate e testo dell'analisi.
+- Nessuna dipendenza esterna aggiunta al container.
+
 # 1.4.0
 - Maestra risponde in modo piu breve, chiaro e concreto, con una frase per concetto.
 - Le informazioni private dell alunno non vengono piu riportate nei materiali rivolti al bambino.
