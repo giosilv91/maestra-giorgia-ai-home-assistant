@@ -1,4 +1,4 @@
-import json, os, sqlite3, threading, urllib.request, urllib.error, base64, io, wave, time
+import json, os, sqlite3, threading, urllib.request, urllib.error, base64, io, wave, time, re
 from datetime import datetime, date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -185,6 +185,128 @@ def gemini_tts(text,voice='Kore'):
         wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(24000); wf.writeframes(raw)
     return buff.getvalue()
 
+
+def _safe_filename(value, fallback='documento'):
+    value=re.sub(r'[^A-Za-z0-9._-]+','_',str(value or '').strip()).strip('._')
+    return value[:90] or fallback
+
+def _pdf_styles():
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+    styles=getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='MGTitle',parent=styles['Title'],fontName='Helvetica-Bold',fontSize=20,leading=24,textColor='#17345d',spaceAfter=12))
+    styles.add(ParagraphStyle(name='MGSub',parent=styles['Normal'],fontName='Helvetica',fontSize=10,leading=14,textColor='#667085',spaceAfter=10))
+    styles.add(ParagraphStyle(name='MGBody',parent=styles['BodyText'],fontName='Helvetica',fontSize=10.5,leading=15,textColor='#1f2937',spaceAfter=7))
+    styles.add(ParagraphStyle(name='MGSection',parent=styles['Heading2'],fontName='Helvetica-Bold',fontSize=13,leading=17,textColor='#17345d',spaceBefore=8,spaceAfter=7))
+    return styles
+
+def _text_to_flowables(text,styles):
+    from reportlab.platypus import Paragraph, Spacer
+    out=[]
+    for raw in str(text or '').splitlines():
+        line=raw.strip()
+        if not line:
+            out.append(Spacer(1,5)); continue
+        if line.startswith(('## ','### ')):
+            line=line.lstrip('#').strip()
+            out.append(Paragraph(line.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;'),styles['MGSection']))
+        else:
+            safe=line.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+            if safe.startswith(('- ','• ')):
+                safe='• '+safe[2:].strip()
+            out.append(Paragraph(safe,styles['MGBody']))
+    return out
+
+def material_pdf(title,content,student_name='',kind='Materiale'):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    styles=_pdf_styles(); buff=io.BytesIO()
+    doc=SimpleDocTemplate(buff,pagesize=A4,rightMargin=18*mm,leftMargin=18*mm,topMargin=16*mm,bottomMargin=16*mm,title=title or kind,author='GM Maestra AI')
+    story=[Paragraph('GM Maestra AI',styles['MGTitle']),Paragraph((title or kind).replace('&','&amp;'),styles['MGSection'])]
+    meta=[]
+    if student_name: meta.append('Alunno/a: '+student_name)
+    if kind: meta.append('Tipo: '+kind)
+    if meta: story.append(Paragraph(' · '.join(meta).replace('&','&amp;'),styles['MGSub']))
+    story.append(Spacer(1,6)); story.extend(_text_to_flowables(content,styles))
+    doc.build(story); return buff.getvalue()
+
+def _grade_num(value):
+    m=re.search(r'\d+(?:[\.,]\d+)?',str(value or ''))
+    if not m:return None
+    try:return float(m.group(0).replace(',','.'))
+    except:return None
+
+def _eval_type(row):
+    t=(row.get('eval_type') or '').strip()
+    a=(row.get('activity') or '').strip().lower()
+    if (not t or t=='Orale') and ('verifica' in a or a in ('scritta','scritto')): return 'Scritta'
+    return t or ('Orale' if ('oral' in a or 'interrog' in a) else 'Osservazione')
+
+def evaluation_pdf(student_name,period_label,items):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.graphics.shapes import Drawing, Rect, String, Line, Circle
+    styles=_pdf_styles(); buff=io.BytesIO()
+    doc=SimpleDocTemplate(buff,pagesize=A4,rightMargin=14*mm,leftMargin=14*mm,topMargin=14*mm,bottomMargin=14*mm,title='Report valutazioni '+student_name,author='GM Maestra AI')
+    story=[Paragraph('Report valutazioni',styles['MGTitle']),Paragraph(student_name.replace('&','&amp;'),styles['MGSection']),Paragraph(period_label.replace('&','&amp;'),styles['MGSub'])]
+
+    numeric=[x for x in items if _grade_num(x.get('grade')) is not None]
+    if numeric:
+        by_subject={}
+        for x in numeric:
+            name=(x.get('subject') or 'Altro').strip().title()
+            by_subject.setdefault(name,[]).append(_grade_num(x.get('grade')))
+        story.append(Paragraph('Media per materia',styles['MGSection']))
+        rows=sorted([(k,sum(v)/len(v)) for k,v in by_subject.items()])
+        d=Drawing(500,max(90,34*len(rows)+20))
+        y=d.height-26
+        for name,val in rows:
+            d.add(String(4,y+6,name,fontName='Helvetica',fontSize=9,fillColor=colors.HexColor('#17345d')))
+            d.add(Rect(120,y,300*(max(0,min(10,val))/10),18,rx=8,ry=8,fillColor=colors.HexColor('#6f7ff2'),strokeColor=None))
+            d.add(String(430,y+5,f'{val:.1f}',fontName='Helvetica-Bold',fontSize=9,fillColor=colors.HexColor('#17345d')))
+            y-=34
+        story.append(d); story.append(Spacer(1,8))
+
+        ordered=sorted(numeric,key=lambda x:(x.get('eval_date') or '',x.get('id') or 0))
+        if len(ordered)>=2:
+            story.append(Paragraph('Andamento nel tempo',styles['MGSection']))
+            W,H=500,190; d2=Drawing(W,H); L,R,T,B=34,14,14,28
+            for tick in range(0,11,2):
+                yy=B+(tick/10)*(H-B-T); d2.add(Line(L,yy,W-R,yy,strokeColor=colors.HexColor('#ece8f1')))
+                d2.add(String(8,yy-3,str(tick),fontSize=8,fillColor=colors.HexColor('#7d8492')))
+            pts=[]
+            for i,x in enumerate(ordered):
+                xx=L+(i/(len(ordered)-1))*(W-L-R)
+                val=max(0,min(10,_grade_num(x.get('grade'))))
+                yy=B+(val/10)*(H-B-T); pts.append((xx,yy,x))
+            for (x1,y1,_),(x2,y2,__) in zip(pts,pts[1:]): d2.add(Line(x1,y1,x2,y2,strokeColor=colors.HexColor('#5578e8'),strokeWidth=2))
+            for xx,yy,x in pts:
+                col='#e56ca7' if _eval_type(x)=='Scritta' else '#5578e8'
+                d2.add(Circle(xx,yy,3.5,fillColor=colors.HexColor(col),strokeColor=None))
+            story.append(d2); story.append(Spacer(1,8))
+
+    data=[['Data','Materia','Tipo prova','Voto']]
+    for x in sorted(items,key=lambda r:(r.get('eval_date') or '',r.get('id') or 0),reverse=True):
+        data.append([x.get('eval_date') or '',(x.get('subject') or '').title(),_eval_type(x),x.get('grade') or ''])
+    table=Table(data,colWidths=[30*mm,55*mm,42*mm,25*mm],repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#edf1ff')),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.HexColor('#17345d')),
+        ('FONTNAME',(0,0),(-1,0),'Helvetica-Bold'),
+        ('FONTNAME',(0,1),(-1,-1),'Helvetica'),
+        ('FONTSIZE',(0,0),(-1,-1),9),
+        ('GRID',(0,0),(-1,-1),0.25,colors.HexColor('#e3e5ea')),
+        ('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#fafbff')]),
+        ('LEFTPADDING',(0,0),(-1,-1),6),('RIGHTPADDING',(0,0),(-1,-1),6),
+        ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
+    ]))
+    story.append(Paragraph('Valutazioni',styles['MGSection'])); story.append(table)
+    doc.build(story); return buff.getvalue()
+
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
     def route_path(self): return urlparse(self.path).path
@@ -238,6 +360,19 @@ class H(BaseHTTPRequestHandler):
                 self.send_response(200); self.send_header('Content-Type','audio/wav'); self.send_header('Content-Length',str(len(audio))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(audio); return
             if p=='/api/materials':
                 i=store.write('INSERT INTO materials(student_id,kind,title,content,created_at) VALUES(?,?,?,?,?)',(b.get('student_id'),b.get('kind','Materiale'),b.get('title','Materiale'),b.get('content',''),now)); return self.sendj({'ok':True,'id':i})
+            if p=='/api/material_pdf':
+                sid=b.get('student_id'); student=store.one('SELECT name FROM students WHERE id=?',(sid,)) if sid else None
+                title=b.get('title') or b.get('kind') or 'Materiale'
+                pdf=material_pdf(title,b.get('content',''),student.get('name','') if student else '',b.get('kind') or 'Materiale')
+                filename=_safe_filename(title,'materiale')+'.pdf'
+                self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition',f'attachment; filename="{filename}"'); self.send_header('Content-Length',str(len(pdf))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(pdf); return
+            if p=='/api/evaluation_pdf':
+                sid=b.get('student_id'); student=store.one('SELECT name FROM students WHERE id=?',(sid,)) if sid else None
+                if not student: raise RuntimeError('Seleziona un alunno')
+                items=b.get('items') or []
+                pdf=evaluation_pdf(student.get('name','Alunno'),b.get('period_label') or 'Periodo selezionato',items)
+                filename=_safe_filename('Valutazioni_'+student.get('name','Alunno'),'valutazioni')+'.pdf'
+                self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition',f'attachment; filename="{filename}"'); self.send_header('Content-Length',str(len(pdf))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(pdf); return
             if p=='/api/settings':
                 s=load_settings()
                 for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
