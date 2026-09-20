@@ -1,3 +1,9 @@
+# 1.3.1
+- Salvataggio PDF diretto sul dispositivo, senza finestra di stampa.
+- PDF per schede operative, verifiche, mappe concettuali, attività semplificate, storie sociali e CAA/visuale.
+- Report valutazioni PDF diretto con nome alunno/a, grafici, materie, tipo prova e voti.
+- Nessun dato privato del profilo viene inserito nel report valutazioni.
+
 # 1.3.0
 - Eliminata la doppia colonna Orale/Orale nel registro: resta un solo Tipo prova.
 - Migrazione automatica dei vecchi record: Verifica viene riconosciuta come Scritta.
