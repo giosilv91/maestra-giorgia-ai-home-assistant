@@ -34,6 +34,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
   #printReport svg{width:100%!important;min-width:0!important;height:auto!important}
   #printReport .private-note{display:none!important}
 }
+.visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}
 </style></head><body>
 <div id="splash">
   <div class="splashbox">
@@ -46,7 +47,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 </div>
 <header><div><div class="logo">♡ GM Maestra AI</div><div class="sub">Giorgia Mauro · Sostegno Primaria</div></div><div>Assistente: <b>Maestra</b></div></header>
 <nav>
-<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
+<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('quick')">🆘 Intervento</button><button onclick="show('manuals')">📚 Manuali</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
 </nav>
 <main>
 <section id="home" class="page active">
@@ -61,8 +62,16 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 </div><button class="primary" onclick="saveStudent()">+ Salva alunno</button><div class="card"><table><thead><tr><th>Nome</th><th>Classe</th><th></th></tr></thead><tbody id="studentsTable"></tbody></table></div></section>
 
 <section id="materials" class="page"><h2>Materiali didattici</h2><div class="card">
-<label>Alunno</label><select class="studentSelect" id="mStudent"></select><label>Tipo</label><select id="mKind"><option>Scheda operativa</option><option>Verifica</option><option>Attività semplificata</option><option>Mappa concettuale</option><option>Storia sociale</option><option>CAA / visuale</option></select>
-<label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button></div><div id="mResult" class="result"></div><div class="flex" style="flex-wrap:wrap;margin-top:12px"><button onclick="saveMaterial()">💾 Salva in archivio</button><button class="primary" onclick="saveMaterialPdf()">📄 Salva PDF sul dispositivo</button></div></section>
+<label>Alunno</label><select class="studentSelect" id="mStudent"></select>
+<label>Tipo</label><select id="mKind"><option>Scheda operativa</option><option>Verifica</option><option>Attività semplificata</option><option>Mappa concettuale</option><option>Storia sociale</option><option>CAA / visuale</option></select>
+<label>Livello di spiegazione</label><select id="mLevel"><option value="molto semplice">Molto semplice</option><option value="semplice" selected>Semplice</option><option value="standard">Standard</option></select>
+<label>Argomento</label><input id="mTopic" placeholder="Es. frazioni equivalenti">
+<div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="genMaterial()">✨ Genera con Maestra</button><button onclick="genVisualMap()">🧩 Crea schema visuale</button></div>
+<div class="muted" style="margin-top:10px">Le informazioni private del profilo servono solo ad adattare il livello: non vengono scritte nel materiale per il bambino.</div>
+</div>
+<div id="mResult" class="result"></div>
+<div id="visualSupport" class="visual-map" style="display:none"></div>
+<div class="flex" style="flex-wrap:wrap;margin-top:12px"><button onclick="saveMaterial()">💾 Salva in archivio</button><button class="primary" onclick="saveMaterialPdf()">📄 Salva PDF</button><button id="saveMapPngBtn" onclick="saveMapPng()" style="display:none">🖼️ Salva schema PNG</button><button id="saveMapSvgBtn" onclick="saveMapSvg()" style="display:none">🧩 Salva schema SVG</button></div></section>
 
 <section id="evals" class="page"><h2>Valutazioni e rendimento</h2>
 <div class="card">
@@ -98,6 +107,42 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <section id="goals" class="page"><h2>Obiettivi</h2><div class="card"><label>Alunno</label><select class="studentSelect" id="gStudent" onchange="loadGoals()"></select><label>Area</label><input id="gArea" placeholder="Autonomia / Apprendimento"><label>Obiettivo</label><input id="gDesc"><label>Stato</label><select id="gStatus"><option>Da iniziare</option><option>In corso</option><option>Parzialmente raggiunto</option><option>Raggiunto</option><option>Consolidato</option></select><label>Note / evidenze</label><textarea id="gNotes"></textarea><button class="primary" onclick="saveGoal()">Salva obiettivo</button></div><div class="card"><table><tbody id="goalTable"></tbody></table></div></section>
 
 <section id="diary" class="page"><h2>Diario didattico</h2><div class="card"><label>Alunno</label><select class="studentSelect" id="dStudent" onchange="loadDiary()"></select><label>Categoria</label><input id="dCat" value="Apprendimento"><label>Nota</label><textarea id="dText"></textarea><div class="grid"><div><label>Partecipazione 1-5</label><input id="dPart" type="number" min="1" max="5" value="3"></div><div><label>Supporto 1-5</label><input id="dSupp" type="number" min="1" max="5" value="3"></div></div><button class="primary" onclick="saveDiary()">Salva nel diario</button></div><div class="card"><table><tbody id="diaryTable"></tbody></table></div></section>
+
+<section id="quick" class="page"><h2>Intervento rapido</h2>
+<div class="card">
+<label>Alunno (facoltativo)</label><select class="studentSelect" id="qStudent"></select>
+<div class="quick-grid" style="margin-top:12px">
+<button class="quick-chip" onclick="setQuick('Si agita e non riesce a fermarsi')">😣 Si agita</button>
+<button class="quick-chip" onclick="setQuick('Non vuole iniziare il lavoro')">🙅 Non vuole lavorare</button>
+<button class="quick-chip" onclick="setQuick('Si blocca davanti al compito')">🧱 Si blocca</button>
+<button class="quick-chip" onclick="setQuick('Perde attenzione continuamente')">👀 Si distrae</button>
+<button class="quick-chip" onclick="setQuick('Piange o si chiude')">😢 Piange / si chiude</button>
+<button class="quick-chip" onclick="setQuick('Disturba i compagni durante il lavoro')">🔊 Disturba</button>
+</div>
+<label>Situazione</label><textarea id="qSituation" placeholder="Scrivi in una frase cosa sta succedendo..."></textarea>
+<button class="primary" onclick="quickHelp()">🆘 Dimmi cosa fare adesso</button>
+</div>
+<div id="qResult" class="result">Maestra risponderà in modo molto breve: cosa fare, cosa dire, cosa evitare e come ripartire.</div>
+</section>
+
+<section id="manuals" class="page"><h2>Manuali e riferimenti</h2>
+<div class="card">
+<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><div><b>Archivio aggiornabile</b><span class="private-badge">Uso docente</span><div class="muted">Leggi, procedure, comportamento, CAA, metodi educativi e strategie pratiche.</div></div><button onclick="resetManualForm()">+ Nuovo manuale</button></div>
+<label>Cerca</label><input id="manualSearch" placeholder="Es. PEI, comportamento, CAA..." oninput="loadManuals()">
+</div>
+<div class="card" id="manualForm">
+<input type="hidden" id="manualId">
+<label>Titolo</label><input id="manualTitle" placeholder="Titolo legge, procedura o strategia">
+<label>Categoria</label><select id="manualCategory"><option>Normativa scolastica</option><option>Comportamento</option><option>Metodi educativi</option><option>Strategie pratiche</option><option>CAA / visuale</option><option>Privacy e sicurezza</option><option>Altro</option></select>
+<div class="grid"><div><label>Data / decorrenza</label><input id="manualDate" type="date"></div><div><label>Fonte ufficiale / URL</label><input id="manualSource" placeholder="https://..."></div></div>
+<label>Tag</label><input id="manualTags" placeholder="es. PEI, GLO, crisi, routine">
+<label>Testo / appunti</label><textarea id="manualContent" placeholder="Incolla qui il testo importante o la procedura..."></textarea>
+<label>Sintesi pratica</label><textarea id="manualSummary" placeholder="Cosa cambia? Cosa devo fare?"></textarea>
+<label>PDF allegato (facoltativo, max 12 MB)</label><input id="manualFile" type="file" accept="application/pdf">
+<div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="saveManual()">💾 Salva manuale</button><button onclick="summarizeManual()">✨ Sintetizza con Maestra</button><button onclick="resetManualForm()">Annulla</button></div>
+</div>
+<div id="manualList"></div>
+</section>
 
 <section id="assistant" class="page"><h2>Maestra</h2><div class="card"><label>Alunno (facoltativo)</label><select class="studentSelect" id="aStudent"></select><label>Chiedi a Maestra</label><textarea id="aPrompt" placeholder="Es. Preparami una verifica semplificata sulle addizioni..."></textarea><button class="primary" onclick="askAI()">✨ Invia</button><button onclick="dictate()">🎤 Detta</button><button onclick="speakResult()">🔊 Leggi risposta</button></div><div id="aResult" class="result"></div></section>
 
