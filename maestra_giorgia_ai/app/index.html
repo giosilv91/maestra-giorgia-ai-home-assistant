@@ -34,7 +34,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
   #printReport svg{width:100%!important;min-width:0!important;height:auto!important}
   #printReport .private-note{display:none!important}
 }
-.visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}
+.visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}.camera-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.camera-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.camera-preview{margin-top:10px;border:1px dashed #cdc3df;border-radius:16px;min-height:120px;background:#faf8fd;display:flex;align-items:center;justify-content:center;overflow:hidden}.camera-preview img,.camera-preview canvas{max-width:100%;height:auto;display:block}.camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.camera-note{font-size:12px;color:#7c899b;margin-top:6px}.vision-block h3{margin:14px 0 6px}.vision-block ul{margin:6px 0;padding-left:20px}.vision-block li{margin:5px 0}
 </style></head><body>
 <div id="splash">
   <div class="splashbox">
@@ -47,7 +47,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 </div>
 <header><div><div class="logo">♡ GM Maestra AI</div><div class="sub">Giorgia Mauro · Sostegno Primaria</div></div><div>Assistente: <b>Maestra</b></div></header>
 <nav>
-<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('quick')">🆘 Intervento</button><button onclick="show('manuals')">📚 Manuali</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
+<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('quick')">🆘 Intervento</button><button onclick="show('manuals')">📚 Manuali</button><button onclick="show('cameraai')">📷 Fotocamera AI</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
 </nav>
 <main>
 <section id="home" class="page active">
@@ -144,6 +144,44 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div id="manualList"></div>
 </section>
 
+<section id="cameraai" class="page"><h2>📷 Fotocamera AI</h2>
+<div class="camera-grid">
+
+<div class="camera-card">
+<h3>📖 Libro AI</h3>
+<div class="muted">Fotografa la copertina e, per un riassunto fedele, anche le pagine da leggere.</div>
+<label>Alunno (facoltativo)</label><select class="studentSelect" id="bookStudent"></select>
+<label>Copertina</label><input id="bookCover" type="file" accept="image/*" capture="environment">
+<label>Pagine interne (facoltative)</label><input id="bookPages" type="file" accept="image/*" capture="environment" multiple>
+<div id="bookPreview" class="camera-preview">Nessuna foto.</div>
+<div class="camera-actions"><button class="primary" onclick="analyzeBook()">✨ Analizza libro</button><button onclick="saveBookPdf()">📄 Salva PDF</button><button onclick="saveBookImage()">🖼️ Salva copertina</button></div>
+<div id="bookResult" class="result vision-block" style="margin-top:12px">Qui comparirà il riassunto.</div>
+</div>
+
+<div class="camera-card">
+<h3>📝 Analizza compiti</h3>
+<div class="muted">Maestra segnala solo gli errori chiaramente visibili e li evidenzia sulla foto quando possibile.</div>
+<label>Alunno</label><select class="studentSelect" id="hwStudent"></select>
+<div class="grid"><div><label>Materia</label><select id="hwSubject"><option>Italiano</option><option>Matematica</option><option>Storia</option><option>Geografia</option><option>Scienze</option><option>Inglese</option><option>Altro</option></select></div><div><label>Tipo</label><select id="hwType"><option>Compito libero</option><option>Verifica</option><option>Dettato</option><option>Copia</option><option>Comprensione</option><option>Calcolo</option></select></div></div>
+<label>Foto compito</label><input id="hwPhoto" type="file" accept="image/*" capture="environment">
+<div id="hwPreview" class="camera-preview">Scatta una foto del foglio o del quaderno.</div>
+<div class="camera-actions"><button class="primary" onclick="analyzeHomework()">🔍 Controlla</button><button onclick="saveHomeworkImage()">🖼️ Salva con errori</button><button onclick="saveHomeworkPdf()">📄 Salva PDF</button></div>
+<div id="hwResult" class="result vision-block" style="margin-top:12px">Qui compariranno errori, correzioni e mini recupero.</div>
+</div>
+
+<div class="camera-card">
+<h3>✍️ Calligrafia</h3>
+<div class="muted">Osservazione didattica/grafomotoria: leggibilità, spaziatura, rigo, forma e regolarità. Nessuna diagnosi o lettura della personalità.</div>
+<label>Alunno</label><select class="studentSelect" id="handStudent"></select>
+<label>Tipo scrittura</label><select id="handType"><option>Corsivo</option><option>Stampato maiuscolo</option><option>Stampato minuscolo</option><option>Numeri</option><option>Copia</option><option>Testo libero</option></select>
+<label>Foto scrittura</label><input id="handPhoto" type="file" accept="image/*" capture="environment">
+<div id="handPreview" class="camera-preview">Scatta una foto nitida della scrittura.</div>
+<div class="camera-actions"><button class="primary" onclick="analyzeHandwriting()">✨ Analizza grafia</button><button onclick="saveHandImage()">🖼️ Salva foto</button><button onclick="saveHandPdf()">📄 Salva PDF</button></div>
+<div id="handResult" class="result vision-block" style="margin-top:12px">Qui compariranno osservazioni e esercizi pratici.</div>
+</div>
+
+</div></section>
+
 <section id="assistant" class="page"><h2>Maestra</h2><div class="card"><label>Alunno (facoltativo)</label><select class="studentSelect" id="aStudent"></select><label>Chiedi a Maestra</label><textarea id="aPrompt" placeholder="Es. Preparami una verifica semplificata sulle addizioni..."></textarea><button class="primary" onclick="askAI()">✨ Invia</button><button onclick="dictate()">🎤 Detta</button><button onclick="speakResult()">🔊 Leggi risposta</button></div><div id="aResult" class="result"></div></section>
 
 <section id="settings" class="page"><h2>Impostazioni</h2><div class="card">
@@ -164,7 +202,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 const base=location.pathname.replace(/\/$/,''); const api=p=>base+'/api'+p;
 async function req(p,opt={}){const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),210000);try{let r=await fetch(api(p),{headers:{'Content-Type':'application/json'},signal:ctl.signal,...opt});let j=await r.json();if(!j.ok)throw new Error(j.error||'Errore');return j}finally{clearTimeout(timer)}}
 function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
-let students=[],lastMaterial='',currentEvals=[],editingEvalId=null,currentMap=null,manuals=[];
+let students=[],lastMaterial='',currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null;
 const GEMINI_VOICES=[
  ['Kore','Kore · ferma'],['Aoede','Aoede · ariosa'],['Leda','Leda · giovane'],['Despina','Despina · morbida'],['Erinome','Erinome · chiara'],['Achernar','Achernar · delicata'],['Vindemiatrix','Vindemiatrix · gentile'],['Sulafat','Sulafat · calda'],['Callirrhoe','Callirrhoe · rilassata'],['Laomedeia','Laomedeia · vivace'],['Autonoe','Autonoe · luminosa'],['Pulcherrima','Pulcherrima · decisa']
 ];
@@ -317,6 +355,108 @@ async function saveGoal(){await post('/goals',{student_id:gStudent.value,area:gA
 async function loadGoals(){if(!gStudent.value)return goalTable.innerHTML='';let j=await req('/goals?student_id='+gStudent.value);goalTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.area)+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.status)+'</td><td><button onclick="del(\'goals\','+x.id+')">X</button></td></tr>').join('');document.getElementById('nGoals').textContent=j.items.length}
 async function saveDiary(){await post('/diary',{student_id:dStudent.value,category:dCat.value,text:dText.value,participation:+dPart.value,support_level:+dSupp.value});dText.value='';await loadDiary()}
 async function loadDiary(){if(!dStudent.value)return diaryTable.innerHTML='';let j=await req('/diary?student_id='+dStudent.value);diaryTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.diary_date)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.text)+'</td><td>'+x.participation+'/5</td></tr>').join('')}
+function imageFileToJpeg(file,maxSide=1600,quality=.86){
+  return new Promise((resolve,reject)=>{
+    if(!file)return reject(new Error('Nessuna foto selezionata'));
+    const fr=new FileReader();
+    fr.onerror=()=>reject(new Error('Impossibile leggere la foto'));
+    fr.onload=()=>{
+      const img=new Image();
+      img.onerror=()=>reject(new Error('Formato immagine non leggibile'));
+      img.onload=()=>{
+        let w=img.naturalWidth,h=img.naturalHeight;
+        const k=Math.min(1,maxSide/Math.max(w,h));w=Math.max(1,Math.round(w*k));h=Math.max(1,Math.round(h*k));
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        const url=cv.toDataURL('image/jpeg',quality);
+        resolve({data:url.split(',')[1],mime:'image/jpeg',url,width:w,height:h});
+      };
+      img.src=fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function downloadDataUrl(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),1000)}
+function visionList(items){return '<ul>'+(items||[]).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'}
+async function refreshBookPreview(){
+  const files=[...bookCover.files,...bookPages.files].slice(0,6);
+  bookImages=[];
+  for(const f of files)bookImages.push(await imageFileToJpeg(f));
+  bookPreview.innerHTML=bookImages.length?'<div class="visual-cards">'+bookImages.map((x,i)=>'<div class="visual-card"><img src="'+x.url+'" style="width:100%;border-radius:10px"><b>'+(i===0?'Copertina':'Pagina '+i)+'</b></div>').join('')+'</div>':'Nessuna foto.';
+}
+async function analyzeBook(){
+  try{
+    await refreshBookPreview();if(!bookImages.length)return alert('Scatta almeno la copertina');
+    bookResult.textContent='Maestra sta leggendo le immagini...';
+    const j=await post('/vision',{mode:'book',images:bookImages.map(x=>({data:x.data,mime:x.mime}))});
+    bookAnalysis=j.result||{};
+    const d=bookAnalysis;
+    bookResult.innerHTML='<h3>'+esc(d.title||'Libro')+'</h3><div class="muted">'+esc(d.author||'')+' · '+esc(d.grade_level||'')+'</div><h3>Riassunto breve</h3><div>'+esc(d.summary_short||'')+'</div><h3>Versione facile</h3><div>'+esc(d.summary_simple||'')+'</div><h3>Parole chiave</h3>'+visionList(d.keywords)+'<h3>Domande</h3>'+visionList(d.questions);
+  }catch(e){bookResult.textContent='Errore: '+e.message}
+}
+function bookPdfText(){if(!bookAnalysis)return'';const d=bookAnalysis;return 'Titolo: '+(d.title||'')+'\nAutore: '+(d.author||'')+'\nArgomento: '+(d.topic||'')+'\nClasse: '+(d.grade_level||'')+'\n\nRIASSUNTO BREVE\n'+(d.summary_short||'')+'\n\nVERSIONE SEMPLICE\n'+(d.summary_simple||'')+'\n\nPAROLE CHIAVE\n- '+(d.keywords||[]).join('\n- ')+'\n\nDOMANDE\n- '+(d.questions||[]).join('\n- ')}
+async function saveBookPdf(){if(!bookAnalysis)return alert('Analizza prima il libro');const title='Libro - '+(bookAnalysis.title||'riassunto');await downloadPdf('/material_pdf',{student_id:bookStudent.value||null,kind:'Libro AI',title,content:bookPdfText()},pdfFilename(title))}
+function saveBookImage(){if(!bookImages.length)return alert('Carica prima la copertina');downloadDataUrl(bookImages[0].url,'Copertina_libro.jpg')}
+
+async function loadHomeworkPhoto(){
+  const f=hwPhoto.files[0];if(!f)return null;
+  hwImage=await imageFileToJpeg(f);drawHomework();return hwImage;
+}
+function drawHomework(){
+  if(!hwImage){hwPreview.textContent='Scatta una foto del foglio o del quaderno.';return}
+  const cv=document.createElement('canvas');cv.id='hwCanvas';cv.width=hwImage.width;cv.height=hwImage.height;
+  const img=new Image();
+  img.onload=()=>{
+    const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,cv.width,cv.height);
+    for(const er of (hwAnalysis?.errors||[])){
+      const x=(Number(er.x)||0)/1000*cv.width,y=(Number(er.y)||0)/1000*cv.height,w=(Number(er.w)||0)/1000*cv.width,h=(Number(er.h)||0)/1000*cv.height;
+      if(w>3&&h>3){ctx.strokeStyle='#e53935';ctx.lineWidth=Math.max(3,cv.width/300);ctx.strokeRect(x,y,w,h);ctx.fillStyle='rgba(229,57,53,.14)';ctx.fillRect(x,y,w,h)}
+    }
+  };
+  img.src=hwImage.url;hwPreview.innerHTML='';hwPreview.appendChild(cv);
+}
+async function analyzeHomework(){
+  try{
+    if(!await loadHomeworkPhoto())return alert('Scatta una foto del compito');
+    hwResult.textContent='Maestra sta controllando il compito...';
+    const j=await post('/vision',{mode:'homework',subject:hwSubject.value,task_type:hwType.value,images:[{data:hwImage.data,mime:hwImage.mime}]});
+    hwAnalysis=j.result||{};drawHomework();
+    const errs=hwAnalysis.errors||[];
+    hwResult.innerHTML='<h3>Errori trovati: '+errs.length+'</h3>'+visionList(errs.map(e=>(e.label||'Errore')+' → '+(e.correction||'')+(e.note?' · '+e.note:'')))+'<h3>Punti positivi</h3>'+visionList(hwAnalysis.strengths)+'<h3>Spiegazione facile</h3><div>'+esc(hwAnalysis.child_explanation||'')+'</div><h3>Mini recupero</h3><div>'+esc(hwAnalysis.recovery_activity||'')+'</div>';
+  }catch(e){hwResult.textContent='Errore: '+e.message}
+}
+function saveHomeworkImage(){const cv=document.getElementById('hwCanvas');if(!cv)return alert('Analizza prima il compito');downloadDataUrl(cv.toDataURL('image/png'),'Compito_errori_evidenziati.png')}
+async function saveHomeworkPdf(){
+  if(!hwAnalysis)return alert('Analizza prima il compito');
+  const errs=(hwAnalysis.errors||[]).map(e=>'- '+(e.label||'')+' | Correzione: '+(e.correction||'')+(e.note?' | '+e.note:'')).join('\n');
+  const txt='Materia: '+(hwAnalysis.subject||hwSubject.value)+'\nTipo: '+hwType.value+'\n\nERRORI\n'+errs+'\n\nPUNTI POSITIVI\n- '+(hwAnalysis.strengths||[]).join('\n- ')+'\n\nSPIEGAZIONE FACILE\n'+(hwAnalysis.child_explanation||'')+'\n\nRECUPERO\n'+(hwAnalysis.recovery_activity||'');
+  await downloadPdf('/material_pdf',{student_id:hwStudent.value||null,kind:'Analisi compito',title:'Analisi compito - '+hwSubject.value,content:txt},pdfFilename('Analisi_compito_'+hwSubject.value));
+}
+
+async function loadHandPhoto(){
+  const f=handPhoto.files[0];if(!f)return null;
+  handImage=await imageFileToJpeg(f);handPreview.innerHTML='<img src="'+handImage.url+'">';return handImage;
+}
+async function analyzeHandwriting(){
+  try{
+    if(!await loadHandPhoto())return alert('Scatta una foto della scrittura');
+    handResult.textContent='Maestra sta osservando la grafia...';
+    const j=await post('/vision',{mode:'handwriting',writing_type:handType.value,images:[{data:handImage.data,mime:handImage.mime}]});
+    handAnalysis=j.result||{};const d=handAnalysis;
+    handResult.innerHTML='<h3>Leggibilità</h3><div>'+esc(d.legibility||'')+'</div><h3>Spaziatura</h3><div>'+esc(d.spacing||'')+'</div><h3>Rigo e allineamento</h3><div>'+esc(d.alignment||'')+'</div><h3>Forma</h3><div>'+esc(d.letter_shape||'')+'</div><h3>Osservazioni grafomotorie</h3><div>'+esc(d.motor_observations||'')+'</div><h3>Punti forti</h3>'+visionList(d.strengths)+'<h3>Da allenare</h3>'+visionList(d.improvements)+'<h3>Esercizi</h3>'+visionList(d.exercises);
+  }catch(e){handResult.textContent='Errore: '+e.message}
+}
+function saveHandImage(){if(!handImage)return alert('Carica prima la foto');downloadDataUrl(handImage.url,'Calligrafia.jpg')}
+async function saveHandPdf(){
+  if(!handAnalysis)return alert('Analizza prima la grafia');const d=handAnalysis;
+  const txt='Tipo: '+(d.writing_type||handType.value)+'\n\nLEGGIBILITA\n'+(d.legibility||'')+'\n\nSPAZIATURA\n'+(d.spacing||'')+'\n\nALLINEAMENTO\n'+(d.alignment||'')+'\n\nFORMA\n'+(d.letter_shape||'')+'\n\nOSSERVAZIONI GRAFOMOTORIE\n'+(d.motor_observations||'')+'\n\nPUNTI FORTI\n- '+(d.strengths||[]).join('\n- ')+'\n\nDA ALLENARE\n- '+(d.improvements||[]).join('\n- ')+'\n\nESERCIZI\n- '+(d.exercises||[]).join('\n- ');
+  await downloadPdf('/material_pdf',{student_id:handStudent.value||null,kind:'Calligrafia',title:'Osservazione calligrafia',content:txt},pdfFilename('Calligrafia'));
+}
+bookCover?.addEventListener('change',()=>refreshBookPreview().catch(()=>{}));
+bookPages?.addEventListener('change',()=>refreshBookPreview().catch(()=>{}));
+hwPhoto?.addEventListener('change',()=>loadHomeworkPhoto().catch(()=>{}));
+handPhoto?.addEventListener('change',()=>loadHandPhoto().catch(()=>{}));
+
 function setQuick(text){qSituation.value=text}
 async function quickHelp(){
   const situation=qSituation.value.trim();if(!situation)return alert('Scrivi la situazione');
