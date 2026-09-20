@@ -1,3 +1,14 @@
+# 1.5.4
+- Archivio materiali completo nella pagina Materiali.
+- Ogni materiale salvato puo essere aperto, modificato, rinominato, esportato in PDF o eliminato.
+- Conferma obbligatoria prima dell eliminazione.
+- Modifica manuale del testo con editor dedicato.
+- Salva modifiche sovrascrive il materiale selezionato invece di crearne uno duplicato.
+- Nuovo campo Modifiche richieste / personalizzazione.
+- Pulsanti rapidi: mele, euro, piu semplice, piu corto, piu esercizi.
+- Rigenera con modifiche usa le preferenze scritte dalla docente.
+- Nessuna modifica ai dati gia salvati.
+
 # 1.5.3
 - Fotocamera live direttamente dentro Maestra Giorgia AI.
 - Pulsante Scatta copertina per Libro AI.
