@@ -20,6 +20,20 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 #splash{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at top,#fff8fc 0%,#f0ebff 58%,#ebe4ff 100%);display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
 #splash.hide{animation:splashout .5s ease forwards}.splashbox{max-width:420px}.splashtitle{font-size:32px;font-weight:900;margin-top:14px}.splashsub{color:#6f6c85;line-height:1.45}.book{width:210px;height:145px;margin:18px auto;position:relative;perspective:900px}.cover,.pageleaf,.back{position:absolute;inset:0;border-radius:18px;transform-origin:left center;box-shadow:0 20px 35px rgba(83,67,153,.18)}.back{background:#f6f1ff}.pageleaf{inset:8px;background:repeating-linear-gradient(180deg,#fff 0 16px,#f0eaff 16px 18px);animation:leaf 1.6s ease .35s forwards;z-index:2}.cover{z-index:3;background:linear-gradient(135deg,#6482ef,#8b64ff 65%,#ff95c8);color:white;display:grid;place-items:center;font-size:26px;font-weight:900;animation:coveropen 1.9s ease forwards}.cover small{display:block;font-size:12px;margin-top:7px}.dots{display:flex;justify-content:center;gap:6px;margin-top:12px}.dots i{width:8px;height:8px;border-radius:50%;background:#7969cf;animation:dot 1s infinite alternate}.dots i:nth-child(2){animation-delay:.2s}.dots i:nth-child(3){animation-delay:.4s}@keyframes coveropen{to{transform:rotateY(-150deg)}}@keyframes leaf{to{transform:rotateY(-125deg)}}@keyframes dot{to{transform:translateY(-6px);opacity:.45}}@keyframes splashout{to{opacity:0;visibility:hidden}}
 @media(max-width:700px){header{align-items:flex-start}.grid{grid-template-columns:1fr}.hide-mobile{display:none}.voice{width:88px;height:88px}}
+#printReport{display:none}
+@media print{
+  @page{size:A4;margin:12mm}
+  body>*:not(#printReport){display:none!important}
+  #printReport{display:block!important;color:#111;background:#fff;font-family:Arial,sans-serif}
+  #printReport h1{font-size:24px;margin:0 0 4px}
+  #printReport h2{font-size:18px;margin:20px 0 8px}
+  #printReport .pmeta{font-size:12px;color:#555;margin-bottom:16px}
+  #printReport table{width:100%;border-collapse:collapse;margin-top:10px}
+  #printReport th,#printReport td{border-bottom:1px solid #ddd;padding:7px 6px;text-align:left;font-size:11px}
+  #printReport .print-chart{page-break-inside:avoid;margin:12px 0 18px}
+  #printReport svg{width:100%!important;min-width:0!important;height:auto!important}
+  #printReport .private-note{display:none!important}
+}
 </style></head><body>
 <div id="splash">
   <div class="splashbox">
@@ -53,12 +67,15 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <section id="evals" class="page"><h2>Valutazioni e rendimento</h2>
 <div class="card">
   <div class="grid">
-    <div><label>Alunno</label><select class="studentSelect" id="eStudent" onchange="loadEvals()"></select><label>Materia</label><input id="eSubject" placeholder="Matematica"></div>
-    <div><label>Tipo prova</label><select id="eType"><option>Orale</option><option>Scritta</option><option>Pratica</option><option>Osservazione</option></select><label>Attività / verifica</label><input id="eActivity" placeholder="Interrogazione, verifica frazioni..."></div>
+    <div><label>Alunno</label><select class="studentSelect" id="eStudent" onchange="cancelEvalEdit();loadEvals()"></select><label>Data prova</label><input id="eDate" type="date"><label>Materia</label><input id="eSubject" placeholder="Matematica"></div>
+    <div><label>Tipo prova</label><select id="eType"><option>Orale</option><option>Scritta</option><option>Pratica</option><option>Osservazione</option></select><label>Dettaglio prova (facoltativo)</label><input id="eActivity" placeholder="Es. Frazioni, lettura, tabelline..."></div>
     <div><label>Voto / giudizio</label><input id="eGrade" placeholder="Per il grafico usa anche un voto numerico"><label>Autonomia 1-5</label><input type="number" min="1" max="5" value="3" id="eAut"></div>
     <div><label>Note</label><textarea id="eNotes"></textarea></div>
   </div>
-  <button class="primary" onclick="saveEval()">Aggiungi valutazione</button>
+  <div class="flex" style="flex-wrap:wrap;margin-top:12px">
+    <button class="primary" id="evalSaveBtn" onclick="saveEval()">Aggiungi valutazione</button>
+    <button id="evalCancelBtn" onclick="cancelEvalEdit()" style="display:none">Annulla modifica</button>
+  </div>
 </div>
 <div class="card">
   <h3 style="margin-top:0">📈 Andamento del bambino/a</h3>
@@ -70,8 +87,12 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
   <div class="metric-row"><div class="metric"><b id="metricAvg">—</b><span>media periodo</span></div><div class="metric"><b id="metricOral">—</b><span>media orale</span></div><div class="metric"><b id="metricWritten">—</b><span>media scritta</span></div><div class="metric"><b id="metricCount">0</b><span>prove registrate</span></div></div>
   <div class="chart-card"><div class="chart-title">Trend nel tempo</div><div class="chart-sub">Voti numerici da 0 a 10 · orale e scritto separati</div><div id="trendChart" class="chart-wrap"></div><div class="legend"><span><i style="background:#5578e8"></i>Orale</span><span><i style="background:#e56ca7"></i>Scritta</span><span><i style="background:#8a78a5"></i>Altre prove</span></div></div>
   <div class="chart-card"><div class="chart-title">Media per materia</div><div class="chart-sub">Confronto di tutte le materie nel periodo selezionato</div><div id="subjectChart" class="chart-wrap"></div></div>
+  <div class="flex" style="flex-wrap:wrap;margin-top:14px">
+    <button class="primary" onclick="printEvalReport()">🖨️ Stampa / salva PDF</button>
+    <span class="muted">Nel report escono solo nome e cognome, materie, tipo prova, voti e grafici. Nessun dato sensibile del profilo.</span>
+  </div>
 </div>
-<div class="card"><h3 style="margin-top:0">Registro</h3><table><tbody id="evalTable"></tbody></table></div>
+<div class="card"><h3 style="margin-top:0">Registro</h3><div class="table-wrap"><table><thead><tr><th>Data</th><th>Materia</th><th>Tipo prova</th><th>Voto</th><th>Autonomia</th><th>Azioni</th></tr></thead><tbody id="evalTable"></tbody></table></div></div>
 </section>
 
 <section id="goals" class="page"><h2>Obiettivi</h2><div class="card"><label>Alunno</label><select class="studentSelect" id="gStudent" onchange="loadGoals()"></select><label>Area</label><input id="gArea" placeholder="Autonomia / Apprendimento"><label>Obiettivo</label><input id="gDesc"><label>Stato</label><select id="gStatus"><option>Da iniziare</option><option>In corso</option><option>Parzialmente raggiunto</option><option>Raggiunto</option><option>Consolidato</option></select><label>Note / evidenze</label><textarea id="gNotes"></textarea><button class="primary" onclick="saveGoal()">Salva obiettivo</button></div><div class="card"><table><tbody id="goalTable"></tbody></table></div></section>
@@ -93,11 +114,12 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="saveSettings()">Salva</button><button onclick="testAI()">Test AI</button><button onclick="removeKey()">Rimuovi chiave</button><button onclick="previewVoice()">🔊 Prova voce</button></div>
 <div id="setStatus" class="muted" style="margin-top:10px"></div></div></section>
 </main>
+<div id="printReport"></div>
 <script>
 const base=location.pathname.replace(/\/$/,''); const api=p=>base+'/api'+p;
 async function req(p,opt={}){const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),210000);try{let r=await fetch(api(p),{headers:{'Content-Type':'application/json'},signal:ctl.signal,...opt});let j=await r.json();if(!j.ok)throw new Error(j.error||'Errore');return j}finally{clearTimeout(timer)}}
 function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');}
-let students=[],lastMaterial='',currentEvals=[];
+let students=[],lastMaterial='',currentEvals=[],editingEvalId=null;
 const GEMINI_VOICES=[
  ['Kore','Kore · ferma'],['Aoede','Aoede · ariosa'],['Leda','Leda · giovane'],['Despina','Despina · morbida'],['Erinome','Erinome · chiara'],['Achernar','Achernar · delicata'],['Vindemiatrix','Vindemiatrix · gentile'],['Sulafat','Sulafat · calda'],['Callirrhoe','Callirrhoe · rilassata'],['Laomedeia','Laomedeia · vivace'],['Autonoe','Autonoe · luminosa'],['Pulcherrima','Pulcherrima · decisa']
 ];
@@ -113,17 +135,75 @@ async function saveStudent(){await post('/students',{name:sName.value,class_name
 async function del(t,id){if(confirm('Eliminare?')){await req('/'+t+'/'+id,{method:'DELETE'});await init()}}
 async function genMaterial(){mResult.textContent='Maestra sta preparando il materiale…';let p='Crea '+mKind.value+' per scuola primaria. Argomento: '+mTopic.value+'. Inserisci obiettivo, consegna, attività, facilitazioni e soluzioni per la docente.';let j=await post('/ai',{student_id:mStudent.value||null,prompt:p});lastMaterial=j.text;mResult.textContent=j.text;}
 async function saveMaterial(){if(!lastMaterial)return;await post('/materials',{student_id:mStudent.value||null,kind:mKind.value,title:mKind.value+' - '+mTopic.value,content:lastMaterial});alert('Salvato');await counts();}
-function evalType(x){if(x.eval_type)return x.eval_type;const a=(x.activity||'').toLowerCase();if(a.includes('oral'))return'Orale';if(a.includes('scritt')||a.includes('verifica'))return'Scritta';return'Osservazione'}
+function evalType(x){const a=(x.activity||'').trim().toLowerCase();const t=(x.eval_type||'').trim();if((!t||t==='Orale')&&(a.includes('verifica')||a==='scritta'||a==='scritto'))return'Scritta';if(t)return t;if(a.includes('oral')||a.includes('interrog'))return'Orale';return'Osservazione'}
+function cleanSubjectName(v){const raw=String(v||'Altro').trim().replace(/\s+/g,' ');return raw?raw.charAt(0).toUpperCase()+raw.slice(1):'Altro'}
 function gradeNum(x){const n=parseFloat(String(x.grade??'').replace(',','.').match(/\d+(?:[.,]\d+)?/)?.[0]||'');return Number.isFinite(n)?n:null}
 function evalCutoff(){const now=new Date();const r=eRange.value;let d=new Date(now);if(r==='day30')d.setDate(d.getDate()-30);else if(r==='week12')d.setDate(d.getDate()-84);else if(r==='month12')d.setMonth(d.getMonth()-12);else{const y=now.getMonth()>=8?now.getFullYear():now.getFullYear()-1;d=new Date(y,8,1)}return d}
-function filteredEvals(){const cutoff=evalCutoff();return currentEvals.filter(x=>new Date(x.eval_date+'T12:00:00')>=cutoff&&(!eSubjectFilter.value||x.subject===eSubjectFilter.value)&&(!eTypeFilter.value||evalType(x)===eTypeFilter.value))}
+function filteredEvals(){const cutoff=evalCutoff();return currentEvals.filter(x=>new Date(x.eval_date+'T12:00:00')>=cutoff&&(!eSubjectFilter.value||cleanSubjectName(x.subject)===eSubjectFilter.value)&&(!eTypeFilter.value||evalType(x)===eTypeFilter.value))}
 function bucketLabel(x){const d=new Date(x.eval_date+'T12:00:00');if(eRange.value==='day30')return x.eval_date.slice(5);if(eRange.value==='week12'){const m=new Date(d);const day=(m.getDay()+6)%7;m.setDate(m.getDate()-day);return 'W '+String(m.getDate()).padStart(2,'0')+'/'+String(m.getMonth()+1).padStart(2,'0')}return String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 function avg(a){const n=a.filter(Number.isFinite);return n.length?n.reduce((s,x)=>s+x,0)/n.length:null}
 function trendSvg(items){const nums=items.filter(x=>gradeNum(x)!==null);if(!nums.length)return'<div class="muted">Nessun voto numerico nel periodo selezionato.</div>';const labels=[...new Set(nums.map(bucketLabel))];const groups={Orale:'#5578e8',Scritta:'#e56ca7',Altro:'#8a78a5'};let series={Orale:[],Scritta:[],Altro:[]};labels.forEach(l=>{Object.keys(series).forEach(k=>{const vals=nums.filter(x=>bucketLabel(x)===l&&((evalType(x)==='Orale'?'Orale':evalType(x)==='Scritta'?'Scritta':'Altro')===k)).map(gradeNum);series[k].push(avg(vals))})});const W=900,H=330,L=46,R=18,T=18,B=50,w=W-L-R,h=H-T-B;let svg='<svg viewBox="0 0 '+W+' '+H+'" role="img">';for(let y=0;y<=10;y+=2){const py=T+h-(y/10)*h;svg+='<line x1="'+L+'" y1="'+py+'" x2="'+(W-R)+'" y2="'+py+'" stroke="#ece8f1"/><text x="8" y="'+(py+4)+'" font-size="12" fill="#7d8492">'+y+'</text>'}labels.forEach((l,i)=>{const x=L+(labels.length===1?w/2:i*w/Math.max(1,labels.length-1));svg+='<text x="'+x+'" y="'+(H-16)+'" text-anchor="middle" font-size="11" fill="#72798a">'+l+'</text>'});for(const [name,color] of Object.entries(groups)){let path='';series[name].forEach((v,i)=>{if(v===null)return;const x=L+(labels.length===1?w/2:i*w/Math.max(1,labels.length-1));const y=T+h-(v/10)*h;path+=(path?' L ':'M ')+x+' '+y});if(path)svg+='<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';series[name].forEach((v,i)=>{if(v===null)return;const x=L+(labels.length===1?w/2:i*w/Math.max(1,labels.length-1));const y=T+h-(v/10)*h;svg+='<circle cx="'+x+'" cy="'+y+'" r="5" fill="'+color+'"><title>'+name+': '+v.toFixed(1)+'</title></circle>'})}return svg+'</svg>'}
-function subjectSvg(items){const map={};items.forEach(x=>{const n=gradeNum(x);if(n===null)return;(map[x.subject||'Altro']??=[]).push(n)});const rows=Object.entries(map).map(([k,v])=>[k,avg(v)]).sort((a,b)=>b[1]-a[1]);if(!rows.length)return'<div class="muted">Nessun voto numerico nel periodo.</div>';const W=900,rowH=44,H=30+rows.length*rowH;let svg='<svg viewBox="0 0 '+W+' '+H+'" role="img">';rows.forEach(([name,val],i)=>{const y=12+i*rowH;const bw=Math.max(4,(val/10)*650);svg+='<text x="8" y="'+(y+20)+'" font-size="13" fill="#2b4165">'+esc(name)+'</text><rect x="180" y="'+y+'" width="'+bw+'" height="26" rx="13" fill="#6f7ff2"/><text x="'+(190+bw)+'" y="'+(y+19)+'" font-size="13" fill="#5c6474">'+val.toFixed(1)+'</text>'});return svg+'</svg>'}
+function subjectSvg(items){const map={};items.forEach(x=>{const n=gradeNum(x);if(n===null)return;const display=cleanSubjectName(x.subject);const key=display.toLowerCase();if(!map[key])map[key]={name:display,vals:[]};map[key].vals.push(n)});const rows=Object.values(map).map(o=>[o.name,avg(o.vals)]).sort((a,b)=>b[1]-a[1]);if(!rows.length)return'<div class="muted">Nessun voto numerico nel periodo.</div>';const W=900,rowH=44,H=30+rows.length*rowH;let svg='<svg viewBox="0 0 '+W+' '+H+'" role="img">';rows.forEach(([name,val],i)=>{const y=12+i*rowH;const bw=Math.max(4,(val/10)*650);svg+='<text x="8" y="'+(y+20)+'" font-size="13" fill="#2b4165">'+esc(name)+'</text><rect x="180" y="'+y+'" width="'+bw+'" height="26" rx="13" fill="#6f7ff2"/><text x="'+(190+bw)+'" y="'+(y+19)+'" font-size="13" fill="#5c6474">'+val.toFixed(1)+'</text>'});return svg+'</svg>'}
 function renderEvalCharts(){const items=filteredEvals();trendChart.innerHTML=trendSvg(items);subjectChart.innerHTML=subjectSvg(items);const all=items.map(gradeNum).filter(Number.isFinite),oral=items.filter(x=>evalType(x)==='Orale').map(gradeNum).filter(Number.isFinite),written=items.filter(x=>evalType(x)==='Scritta').map(gradeNum).filter(Number.isFinite);metricAvg.textContent=avg(all)?.toFixed(1)??'—';metricOral.textContent=avg(oral)?.toFixed(1)??'—';metricWritten.textContent=avg(written)?.toFixed(1)??'—';metricCount.textContent=items.length}
-async function saveEval(){if(!eStudent.value)return alert('Seleziona un alunno');await post('/evaluations',{student_id:eStudent.value,subject:eSubject.value,eval_type:eType.value,activity:eActivity.value,grade:eGrade.value,autonomy:+eAut.value,notes:eNotes.value});await loadEvals()}
-async function loadEvals(){if(!eStudent.value){evalTable.innerHTML='';currentEvals=[];renderEvalCharts();return}let j=await req('/evaluations?student_id='+eStudent.value);currentEvals=j.items||[];evalTable.innerHTML=currentEvals.map(x=>'<tr><td>'+esc(x.eval_date)+'</td><td>'+esc(x.subject)+'</td><td>'+esc(evalType(x))+'</td><td>'+esc(x.activity)+'</td><td>'+esc(x.grade)+'</td><td>'+x.autonomy+'/5</td><td><button onclick="del(\'evaluations\','+x.id+')">X</button></td></tr>').join('');const subs=[...new Set(currentEvals.map(x=>x.subject).filter(Boolean))].sort();eSubjectFilter.innerHTML='<option value="">Tutte le materie</option>'+subs.map(x=>'<option>'+esc(x)+'</option>').join('');renderEvalCharts()}
+function cancelEvalEdit(){
+  editingEvalId=null;
+  if(document.getElementById('evalSaveBtn'))evalSaveBtn.textContent='Aggiungi valutazione';
+  if(document.getElementById('evalCancelBtn'))evalCancelBtn.style.display='none';
+  if(document.getElementById('eDate')&&!eDate.value)eDate.value=new Date().toISOString().slice(0,10);
+  eSubject.value=''; eActivity.value=''; eGrade.value=''; eAut.value='3'; eNotes.value=''; eType.value='Orale';
+}
+function editEval(id){
+  const x=currentEvals.find(r=>Number(r.id)===Number(id)); if(!x)return;
+  editingEvalId=x.id;
+  eDate.value=x.eval_date||new Date().toISOString().slice(0,10);
+  eSubject.value=x.subject||'';
+  eType.value=evalType(x);
+  eActivity.value=(x.activity&&x.activity!==evalType(x))?x.activity:'';
+  eGrade.value=x.grade||'';
+  eAut.value=x.autonomy||3;
+  eNotes.value=x.notes||'';
+  evalSaveBtn.textContent='Salva modifiche';
+  evalCancelBtn.style.display='inline-block';
+  document.getElementById('evals').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function saveEval(){
+  if(!eStudent.value)return alert('Seleziona un alunno');
+  if(!eDate.value)return alert('Seleziona la data della prova');
+  const body={id:editingEvalId||undefined,student_id:eStudent.value,eval_date:eDate.value,subject:eSubject.value,eval_type:eType.value,activity:eActivity.value,grade:eGrade.value,autonomy:+eAut.value,notes:eNotes.value};
+  await post('/evaluations',body);
+  cancelEvalEdit();
+  await loadEvals();
+}
+function printPeriodLabel(){return eRange.options[eRange.selectedIndex]?.text||'Periodo selezionato'}
+function buildPrintReport(){
+  const st=students.find(s=>String(s.id)===String(eStudent.value)); if(!st)return'';
+  const items=filteredEvals();
+  const rows=items.map(x=>'<tr><td>'+esc(x.eval_date)+'</td><td>'+esc(cleanSubjectName(x.subject))+'</td><td>'+esc(evalType(x))+'</td><td>'+esc(x.grade||'')+'</td></tr>').join('');
+  const subjectFilter=eSubjectFilter.value?' · '+esc(eSubjectFilter.value):'';
+  const typeFilter=eTypeFilter.value?' · '+esc(eTypeFilter.value):'';
+  return '<h1>Report valutazioni — '+esc(st.name)+'</h1>'+
+    '<div class="pmeta">'+esc(printPeriodLabel())+subjectFilter+typeFilter+'</div>'+
+    '<div class="print-chart"><h2>Andamento nel tempo</h2>'+trendSvg(items)+'</div>'+
+    '<div class="print-chart"><h2>Media per materia</h2>'+subjectSvg(items)+'</div>'+
+    '<h2>Valutazioni</h2><table><thead><tr><th>Data</th><th>Materia</th><th>Tipo prova</th><th>Voto</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function printEvalReport(){
+  if(!eStudent.value)return alert('Seleziona un alunno');
+  const report=buildPrintReport(); if(!report)return;
+  printReport.innerHTML=report;
+  setTimeout(()=>window.print(),80);
+}
+async function loadEvals(){
+  if(!eStudent.value){evalTable.innerHTML='';currentEvals=[];renderEvalCharts();return}
+  let j=await req('/evaluations?student_id='+eStudent.value);currentEvals=j.items||[];
+  evalTable.innerHTML=currentEvals.map(x=>'<tr><td>'+esc(x.eval_date)+'</td><td>'+esc(cleanSubjectName(x.subject))+'</td><td>'+esc(evalType(x))+'</td><td>'+esc(x.grade)+'</td><td>'+x.autonomy+'/5</td><td><button onclick="editEval('+x.id+')">Modifica</button> <button onclick="del(\'evaluations\','+x.id+')">X</button></td></tr>').join('');
+  const map={};currentEvals.forEach(x=>{const d=cleanSubjectName(x.subject);map[d.toLowerCase()]=d});
+  const subs=Object.values(map).sort((a,b)=>a.localeCompare(b));
+  const keep=eSubjectFilter.value;
+  eSubjectFilter.innerHTML='<option value="">Tutte le materie</option>'+subs.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');
+  if(subs.includes(keep))eSubjectFilter.value=keep;
+  renderEvalCharts();
+}
 async function saveGoal(){await post('/goals',{student_id:gStudent.value,area:gArea.value,description:gDesc.value,status:gStatus.value,notes:gNotes.value});await loadGoals()}
 async function loadGoals(){if(!gStudent.value)return goalTable.innerHTML='';let j=await req('/goals?student_id='+gStudent.value);goalTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.area)+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.status)+'</td><td><button onclick="del(\'goals\','+x.id+')">X</button></td></tr>').join('');document.getElementById('nGoals').textContent=j.items.length}
 async function saveDiary(){await post('/diary',{student_id:dStudent.value,category:dCat.value,text:dText.value,participation:+dPart.value,support_level:+dSupp.value});dText.value='';await loadDiary()}
@@ -137,6 +217,6 @@ async function removeKey(){await post('/settings',{remove_gemini_key:true});awai
 async function loadHaTasks(){try{let j=await req('/ha_ai_tasks');const keep=currentSettings.ha_ai_task_entity||'';haTaskSelect.innerHTML='<option value="">Preferito di Home Assistant</option>'+j.items.map(x=>'<option value="'+esc(x.entity_id)+'">'+esc(x.name)+' · '+esc(x.entity_id)+'</option>').join('');haTaskSelect.value=keep;if(!j.items.length)haTaskSelect.innerHTML+='<option disabled>Nessun AI Task trovato</option>'}catch(e){}}
 async function status(){let j=await req('/status');currentSettings=j.settings||{};setTeacher.value=currentSettings.teacher_name||'Giorgia Mauro';setAssistant.value=currentSettings.assistant_name||'Maestra';setModel.value=currentSettings.gemini_model||'gemini-3.8-flash';aiProvider.value=currentSettings.ai_provider||'auto';ttsModel.value=currentSettings.tts_model||'gemini-3.1-flash-tts-preview';autoSpeak.checked=currentSettings.auto_speak!==false;populateVoices();if(currentSettings.tts_voice)voiceSelect.value=currentSettings.tts_voice;await loadHaTasks();setStatus.textContent='Gemini API key: '+(currentSettings.gemini_api_key?'configurata':'non configurata')+' · Motore: '+aiProvider.options[aiProvider.selectedIndex].text}
 async function counts(){let j=await req('/materials');nMaterials.textContent=j.items.length}
-async function init(){try{await loadStudents();await counts();await status();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
+async function init(){try{if(document.getElementById('eDate'))eDate.value=new Date().toISOString().slice(0,10);await loadStudents();await counts();await status();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
 init();
 </script></body></html>
