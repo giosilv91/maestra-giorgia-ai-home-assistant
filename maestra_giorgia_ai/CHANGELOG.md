@@ -1,3 +1,9 @@
+# 1.3.2
+- Corretto errore di build della 1.3.1.
+- Rimossa la dipendenza ReportLab che causava problemi su Home Assistant/Alpine.
+- PDF generati ora con Python puro, senza pacchetti esterni.
+- Restano Salva PDF sul dispositivo per materiali e report valutazioni con grafici.
+
 # 1.3.1
 - Salvataggio PDF diretto sul dispositivo, senza finestra di stampa.
 - PDF per schede operative, verifiche, mappe concettuali, attività semplificate, storie sociali e CAA/visuale.
