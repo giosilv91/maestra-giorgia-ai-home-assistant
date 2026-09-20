@@ -400,6 +400,98 @@ def evaluation_pdf(student_name,period_label,items):
         pages.append(cmds)
     return _pdf_make(pages)
 
+def _jpeg_dimensions(data):
+    if len(data)<4 or data[:2] != b'\xff\xd8':
+        raise RuntimeError('Immagine JPEG non valida')
+    i=2
+    sof={0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}
+    while i+4 <= len(data):
+        if data[i] != 0xFF:
+            i += 1; continue
+        while i < len(data) and data[i] == 0xFF: i += 1
+        if i >= len(data): break
+        marker=data[i]; i+=1
+        if marker in (0xD8,0xD9): continue
+        if marker == 0xDA: break
+        if i+2 > len(data): break
+        ln=int.from_bytes(data[i:i+2],'big')
+        if marker in sof and i+7 <= len(data):
+            h=int.from_bytes(data[i+3:i+5],'big')
+            w=int.from_bytes(data[i+5:i+7],'big')
+            return w,h
+        i += ln
+    raise RuntimeError('Dimensioni JPEG non leggibili')
+
+def vision_pdf(title,content,images,student_name=''):
+    objects=[None,
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        None,
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+    ]
+    page_refs=[]
+    for idx,img in enumerate(images[:6]):
+        data=(img.get('data') or '').strip()
+        if not data: continue
+        raw=base64.b64decode(data)
+        if len(raw)>8*1024*1024: continue
+        try:w,h=_jpeg_dimensions(raw)
+        except: continue
+        im_obj=len(objects)
+        objects.append(b"<< /Type /XObject /Subtype /Image /Width "+str(w).encode()+b" /Height "+str(h).encode()+b" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+str(len(raw)).encode()+b" >>\nstream\n"+raw+b"\nendstream")
+        maxw,maxh=505,700
+        scale=min(maxw/w,maxh/h)
+        dw,dh=w*scale,h*scale
+        x=(595-dw)/2; y=(842-dh)/2-8
+        cmds=_pdf_text_cmd(45,812,title,15,True)
+        if student_name: cmds+=_pdf_text_cmd(45,793,'Alunno/a: '+student_name,9,False)
+        cmds+=f"q {dw:.2f} 0 0 {dh:.2f} {x:.2f} {y:.2f} cm /Im1 Do Q\n"
+        content_bytes=cmds.encode('latin-1','replace')
+        content_obj=len(objects)
+        objects.append(b"<< /Length "+str(len(content_bytes)).encode()+b" >>\nstream\n"+content_bytes+b"endstream")
+        page_obj=len(objects)
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << /Im1 {im_obj} 0 R >> >> /Contents {content_obj} 0 R >>")
+        page_refs.append(page_obj)
+
+    lines=_wrapped_lines(content,90)
+    commands=[]; y=790
+    def flush_text():
+        nonlocal commands,y
+        if not commands:return
+        body=''.join(commands).encode('latin-1','replace')
+        content_obj=len(objects)
+        objects.append(b"<< /Length "+str(len(body)).encode()+b" >>\nstream\n"+body+b"endstream")
+        page_obj=len(objects)
+        objects.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {content_obj} 0 R >>")
+        page_refs.append(page_obj); commands=[]; y=790
+    commands.append(_pdf_text_cmd(45,820,title,16,True))
+    if student_name:
+        commands.append(_pdf_text_cmd(45,802,'Alunno/a: '+student_name,9,False)); y=775
+    for line in lines:
+        if y<50: flush_text(); commands.append(_pdf_text_cmd(45,820,title,16,True))
+        if not line:
+            y-=8; continue
+        heading=line.isupper() and len(line)<80
+        commands.append(_pdf_text_cmd(48,y,line,11 if heading else 10,heading))
+        y-=17 if heading else 14
+    flush_text()
+    if not page_refs:
+        commands=[_pdf_text_cmd(45,820,title,16,True)]
+        flush_text()
+    objects[2]="<< /Type /Pages /Kids ["+' '.join(f'{x} 0 R' for x in page_refs)+f"] /Count {len(page_refs)} >>"
+    out=bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"); offsets=[0]*len(objects)
+    for i in range(1,len(objects)):
+        offsets[i]=len(out)
+        obj=objects[i]
+        raw=obj if isinstance(obj,(bytes,bytearray)) else obj.encode('latin-1','replace')
+        out.extend(f"{i} 0 obj\n".encode()); out.extend(raw); out.extend(b"\nendobj\n")
+    xref=len(out)
+    out.extend(f"xref\n0 {len(objects)}\n".encode()); out.extend(b"0000000000 65535 f \n")
+    for i in range(1,len(objects)):
+        out.extend(f"{offsets[i]:010d} 00000 n \n".encode())
+    out.extend(f"trailer\n<< /Size {len(objects)} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
+    return bytes(out)
+
 def _manual_file_name(name):
     name=Path(str(name or 'allegato.pdf')).name
     stem=re.sub(r'[^A-Za-z0-9._-]+','_',name).strip('._')
