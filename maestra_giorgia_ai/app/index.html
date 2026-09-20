@@ -396,7 +396,7 @@ async function analyzeBook(){
     bookResult.innerHTML='<h3>'+esc(d.title||'Libro')+'</h3><div class="muted">'+esc(d.author||'')+' · '+esc(d.grade_level||'')+'</div><h3>Riassunto breve</h3><div>'+esc(d.summary_short||'')+'</div><h3>Versione facile</h3><div>'+esc(d.summary_simple||'')+'</div><h3>Parole chiave</h3>'+listHtml(d.keywords)+'<h3>Domande</h3>'+listHtml(d.questions)+'<h3>Mappa veloce</h3>'+listHtml(branches.map(b=>(b.label||'')+' → '+(b.items||[]).join(', ')));
   }catch(e){bookResult.textContent='Errore: '+e.message}
 }
-async function saveBookPdf(){if(!bookAnalysis)return alert('Analizza prima il libro');const title='Libro - '+(bookAnalysis.title||'riassunto');await downloadPdf('/material_pdf',{student_id:bookStudent.value||null,kind:'Libro AI',title,content:bookText(bookAnalysis)},pdfFilename(title))}
+async function saveBookPdf(){if(!bookAnalysis)return alert('Analizza prima il libro');const title='Libro - '+(bookAnalysis.title||'riassunto');await downloadPdf('/vision_pdf',{student_id:bookStudent.value||null,title,content:bookText(bookAnalysis),images:bookImages.slice(0,6).map(x=>({data:x.data,mime:x.mime}))},pdfFilename(title))}
 function saveBookCover(){if(!bookImages.length)return alert('Carica prima la copertina');downloadDataUrl(bookImages[0].url,'Copertina_libro.jpg')}
 
 async function loadHomeworkPhoto(){
@@ -423,7 +423,7 @@ async function saveHomeworkPdf(){
   if(!hwAnalysis)return alert('Analizza prima il compito');
   const errs=(hwAnalysis.errors||[]).map(e=>'- '+(e.label||'')+' | Correzione: '+(e.correction||'')+(e.note?' | '+e.note:'')).join('\n');
   const txt='Materia: '+(hwAnalysis.subject||hwSubject.value)+'\nTipo: '+hwType.value+'\n\nERRORI\n'+errs+'\n\nPUNTI POSITIVI\n'+(hwAnalysis.strengths||[]).join('\n- ')+'\n\nSPIEGAZIONE FACILE\n'+(hwAnalysis.child_explanation||'')+'\n\nRECUPERO\n'+(hwAnalysis.recovery_activity||'');
-  await downloadPdf('/material_pdf',{student_id:hwStudent.value||null,kind:'Analisi compito',title:'Analisi compito - '+hwSubject.value,content:txt},pdfFilename('Analisi_compito_'+hwSubject.value));
+  const imgs=[];if(hwImage)imgs.push({data:hwImage.data,mime:'image/jpeg'});const canvas=document.getElementById('hwCanvas');if(canvas){const d=canvas.toDataURL('image/jpeg',.88);imgs.push({data:d.split(',')[1],mime:'image/jpeg'})}await downloadPdf('/vision_pdf',{student_id:hwStudent.value||null,title:'Analisi compito - '+hwSubject.value,content:txt,images:imgs},pdfFilename('Analisi_compito_'+hwSubject.value));
 }
 
 async function loadHandPhoto(){
@@ -442,7 +442,7 @@ function saveHandwritingImage(){if(!handImage)return alert('Carica prima la foto
 async function saveHandwritingPdf(){
   if(!handAnalysis)return alert('Analizza prima la grafia');const d=handAnalysis;
   const txt='Tipo: '+(d.writing_type||handType.value)+'\n\nLEGGIBILITA\n'+(d.legibility||'')+'\n\nSPAZIATURA\n'+(d.spacing||'')+'\n\nALLINEAMENTO\n'+(d.alignment||'')+'\n\nFORMA\n'+(d.letter_shape||'')+'\n\nOSSERVAZIONI GRAFOMOTORIE\n'+(d.motor_observations||'')+'\n\nPUNTI FORTI\n'+(d.strengths||[]).join('\n- ')+'\n\nDA ALLENARE\n'+(d.improvements||[]).join('\n- ')+'\n\nESERCIZI\n'+(d.exercises||[]).join('\n- ');
-  await downloadPdf('/material_pdf',{student_id:handStudent.value||null,kind:'Calligrafia',title:'Osservazione calligrafia',content:txt},pdfFilename('Calligrafia'));
+  await downloadPdf('/vision_pdf',{student_id:handStudent.value||null,title:'Osservazione calligrafia',content:txt,images:handImage?[{data:handImage.data,mime:'image/jpeg'}]:[]},pdfFilename('Calligrafia'));
 }
 document.getElementById('bookCover')?.addEventListener('change',()=>refreshBookPreview().catch(()=>{}));
 document.getElementById('bookPages')?.addEventListener('change',()=>refreshBookPreview().catch(()=>{}));
