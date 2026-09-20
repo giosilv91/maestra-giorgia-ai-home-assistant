@@ -632,6 +632,12 @@ class H(BaseHTTPRequestHandler):
                 else:
                     raise RuntimeError('Modalita visione non valida')
                 return self.sendj({'ok':True,'id':rid,'result':result})
+            if p=='/api/vision_pdf':
+                sid=b.get('student_id'); student=store.one('SELECT name FROM students WHERE id=?',(sid,)) if sid else None
+                title=b.get('title') or 'Maestra Giorgia AI'
+                pdf=vision_pdf(title,b.get('content',''),b.get('images') or [],student.get('name','') if student else '')
+                filename=_safe_filename(title,'maestra_ai')+'.pdf'
+                self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition',f'attachment; filename="{filename}"'); self.send_header('Content-Length',str(len(pdf))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(pdf); return
             if p=='/api/settings':
                 s=load_settings()
                 for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
