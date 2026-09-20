@@ -1,3 +1,15 @@
+# 1.5.2
+- Ripristinata Fotocamera AI sopra la base stabile 1.5.1 senza modificare il database.
+- Nuovo tasto 📷 Fotocamera AI nel menu.
+- Libro AI: copertina + fino a 5 pagine, riassunto breve, versione facile, parole chiave e domande.
+- Analizza compiti: foto da fotocamera, materia/tipo prova, errori visibili, correzioni e mini recupero.
+- Evidenziazione degli errori direttamente sulla foto quando Gemini restituisce una zona attendibile.
+- Salvataggio PNG del compito annotato.
+- Calligrafia: osservazione didattica/grafomotoria di leggibilita, spaziatura, rigo, forma e regolarita.
+- Nessuna inferenza di personalita, diagnosi, intelligenza o condizioni cliniche dalla grafia.
+- PDF testuali diretti per Libro AI, Compiti e Calligrafia; le immagini si salvano separatamente sul dispositivo.
+- Nessuna nuova dipendenza del container.
+
 # 1.5.0
 - Nuovo modulo Libro AI con fotocamera/copertina e fino a 6 immagini/pagine.
 - Gemini Vision riconosce titolo/autore quando leggibili e riassume solo le pagine realmente fotografate.
