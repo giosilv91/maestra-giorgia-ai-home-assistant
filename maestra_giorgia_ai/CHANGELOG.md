@@ -1,3 +1,14 @@
+# 1.4.0
+- Maestra risponde in modo piu breve, chiaro e concreto, con una frase per concetto.
+- Le informazioni private dell alunno non vengono piu riportate nei materiali rivolti al bambino.
+- Mappe concettuali visuali vere con rami, parole chiave, emoji e sotto-concetti.
+- Salvataggio mappe come PNG e SVG sul dispositivo.
+- Nuovo livello di spiegazione: molto semplice, semplice, standard.
+- Nuova sezione Intervento rapido con risposte pratiche su agitazione, blocco, attenzione, rifiuto del compito e altre situazioni.
+- Nuova sezione Manuali e riferimenti con ricerca, categorie, fonte, data, tag, testo, sintesi e PDF allegato.
+- Possibilita di aggiungere nuove leggi, procedure e strategie comportamentali e sintetizzarle con Maestra senza inventare oltre il testo fornito.
+- Manuali base inclusi: de-escalation, task analysis, prompting/fading, routine visive, CAA e checklist nuova normativa.
+
 # 1.3.2
 - Corretto errore di build della 1.3.1.
 - Rimossa la dipendenza ReportLab che causava problemi su Home Assistant/Alpine.
