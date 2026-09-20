@@ -30,6 +30,20 @@ class Store:
             if "eval_type" not in cols:
                 self.db.execute("ALTER TABLE evaluations ADD COLUMN eval_type TEXT DEFAULT 'Orale'")
                 self.db.commit()
+            # Migrazione dati V1/V1.2: in passato il vero tipo prova era spesso scritto in activity.
+            self.db.execute("""UPDATE evaluations
+                SET eval_type='Scritta'
+                WHERE lower(trim(coalesce(activity,''))) LIKE '%verifica%'
+                  AND lower(trim(coalesce(eval_type,''))) IN ('','orale')""")
+            self.db.execute("""UPDATE evaluations
+                SET eval_type='Scritta'
+                WHERE lower(trim(coalesce(activity,''))) IN ('scritto','scritta','verifica scritta')
+                  AND lower(trim(coalesce(eval_type,''))) IN ('','orale')""")
+            self.db.execute("""UPDATE evaluations
+                SET eval_type='Orale'
+                WHERE lower(trim(coalesce(activity,''))) IN ('orale','interrogazione')
+                  AND lower(trim(coalesce(eval_type,'')))=''""")
+            self.db.commit()
     def all(self,sql,args=()):
         with self.lock:return [dict(x) for x in self.db.execute(sql,args).fetchall()]
     def one(self,sql,args=()):
@@ -206,8 +220,12 @@ class H(BaseHTTPRequestHandler):
                 else:i=store.write('INSERT INTO students(name,class_name,strengths,difficulties,strategies,goals,created_at) VALUES(?,?,?,?,?,?,?)',(b.get('name',''),b.get('class_name',''),b.get('strengths',''),b.get('difficulties',''),b.get('strategies',''),b.get('goals',''),now))
                 return self.sendj({'ok':True,'id':i})
             if p=='/api/evaluations':
-                i=store.write('INSERT INTO evaluations(student_id,eval_date,term,subject,activity,grade,autonomy,notes,eval_type) VALUES(?,?,?,?,?,?,?,?,?)',(b.get('student_id'),b.get('eval_date') or date.today().isoformat(),int(b.get('term') or 1),b.get('subject',''),b.get('activity',''),b.get('grade',''),int(b.get('autonomy') or 3),b.get('notes',''),b.get('eval_type') or 'Orale'))
-                return self.sendj({'ok':True,'id':i})
+                payload=(b.get('eval_date') or date.today().isoformat(),int(b.get('term') or 1),b.get('subject','').strip(),b.get('activity','').strip(),b.get('grade','').strip(),int(b.get('autonomy') or 3),b.get('notes','').strip(),b.get('eval_type') or 'Orale')
+                if b.get('id'):
+                    store.write('UPDATE evaluations SET eval_date=?,term=?,subject=?,activity=?,grade=?,autonomy=?,notes=?,eval_type=? WHERE id=?',payload+(int(b['id']),))
+                    return self.sendj({'ok':True,'id':int(b['id']),'updated':True})
+                i=store.write('INSERT INTO evaluations(student_id,eval_date,term,subject,activity,grade,autonomy,notes,eval_type) VALUES(?,?,?,?,?,?,?,?,?)',(b.get('student_id'),)+payload)
+                return self.sendj({'ok':True,'id':i,'updated':False})
             if p=='/api/goals':
                 i=store.write('INSERT INTO goals(student_id,area,description,status,notes,updated_at) VALUES(?,?,?,?,?,?)',(b.get('student_id'),b.get('area',''),b.get('description',''),b.get('status','Da iniziare'),b.get('notes',''),now)); return self.sendj({'ok':True,'id':i})
             if p=='/api/diary':
