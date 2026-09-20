@@ -441,7 +441,7 @@ def _extract_json_object(text):
     return json.loads(raw[a:b+1])
 
 def concept_map_generate(topic,student_context='',level='semplice'):
-    prompt="Crea una MAPPA CONCETTUALE VISIVA per scuola primaria.\\nArgomento: "+str(topic)+"\\nLivello: "+str(level)+"\\nRegole: massimo 6 rami; ogni ramo massimo 3 sotto-concetti; frasi di 1-5 parole; linguaggio molto semplice; usa un emoji pertinente per ogni ramo; niente informazioni private sull alunno. Restituisci SOLO JSON valido nel formato: {\\\"title\\\":\\\"titolo breve\\\",\\\"branches\\\":[{\\\"label\\\":\\\"ramo\\\",\\\"emoji\\\":\\\"🔹\\\",\\\"children\\\":[\\\"idea 1\\\",\\\"idea 2\\\"]}]}"
+    prompt="Crea una MAPPA CONCETTUALE VISIVA professionale per scuola primaria, adeguata alla classe indicata nel profilo.\\nArgomento: "+str(topic)+"\\nLivello di spiegazione richiesto: "+str(level)+"\\nRegole: massimo 6 rami; ogni ramo massimo 3 sotto-concetti; usa parole chiave concise ma disciplinarmente corrette. 1a-2a: piu concreta; 3a: ponte concreto-simbolico; 4a-5a: relazioni tra concetti e terminologia adeguata, senza infantilizzare. Lo schema deve chiarire relazioni o passaggi, non essere decorativo. Usa emoji solo se utili. Non riportare difficolta, diagnosi o note private dell alunno. Restituisci SOLO JSON valido nel formato: {\\\"title\\\":\\\"titolo breve\\\",\\\"branches\\\":[{\\\"label\\\":\\\"ramo\\\",\\\"emoji\\\":\\\"🔹\\\",\\\"children\\\":[\\\"idea 1\\\",\\\"idea 2\\\"]}]}"
     data=_extract_json_object(ai_generate(prompt,student_context))
     title=str(data.get('title') or topic)[:80]
     branches=[]
