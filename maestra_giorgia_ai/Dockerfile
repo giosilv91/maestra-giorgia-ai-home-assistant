@@ -1,6 +1,6 @@
 FROM ghcr.io/home-assistant/base:latest
 
-LABEL io.hass.version="1.5.2" \
+LABEL io.hass.version="1.5.3" \
       io.hass.type="app" \
       io.hass.arch="aarch64|amd64"
 
