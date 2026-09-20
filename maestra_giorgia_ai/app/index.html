@@ -317,6 +317,47 @@ async function saveGoal(){await post('/goals',{student_id:gStudent.value,area:gA
 async function loadGoals(){if(!gStudent.value)return goalTable.innerHTML='';let j=await req('/goals?student_id='+gStudent.value);goalTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.area)+'</td><td>'+esc(x.description)+'</td><td>'+esc(x.status)+'</td><td><button onclick="del(\'goals\','+x.id+')">X</button></td></tr>').join('');document.getElementById('nGoals').textContent=j.items.length}
 async function saveDiary(){await post('/diary',{student_id:dStudent.value,category:dCat.value,text:dText.value,participation:+dPart.value,support_level:+dSupp.value});dText.value='';await loadDiary()}
 async function loadDiary(){if(!dStudent.value)return diaryTable.innerHTML='';let j=await req('/diary?student_id='+dStudent.value);diaryTable.innerHTML=j.items.map(x=>'<tr><td>'+esc(x.diary_date)+'</td><td>'+esc(x.category)+'</td><td>'+esc(x.text)+'</td><td>'+x.participation+'/5</td></tr>').join('')}
+function setQuick(text){qSituation.value=text}
+async function quickHelp(){
+  const situation=qSituation.value.trim();if(!situation)return alert('Scrivi la situazione');
+  qResult.textContent='Maestra sta preparando un intervento breve...';
+  const prompt='Situazione in classe: '+situation+'. Rispondi in massimo 8 righe, molto pratiche. Formato obbligatorio: 1) FAI ORA; 2) DI UNA FRASE PRECISA; 3) EVITA; 4) SUPPORTO VISIVO; 5) COME RIPARTIRE. Non diagnosticare e non citare informazioni private del profilo.';
+  try{const j=await post('/ai',{student_id:qStudent.value||null,prompt});qResult.textContent=j.text||'Nessuna risposta'}catch(e){qResult.textContent='Errore: '+e.message}
+}
+
+function resetManualForm(){
+  manualId.value='';manualTitle.value='';manualCategory.value='Normativa scolastica';manualDate.value='';manualSource.value='';manualTags.value='';manualSummary.value='';manualContent.value='';manualFile.value='';
+}
+function fileBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(file)})}
+async function saveManual(){
+  const title=manualTitle.value.trim();if(!title)return alert('Inserisci il titolo');
+  let attachment_b64='',attachment_name='';
+  const f=manualFile.files&&manualFile.files[0];
+  if(f){if(f.size>12*1024*1024)return alert('PDF troppo grande: massimo 12 MB');attachment_b64=await fileBase64(f);attachment_name=f.name}
+  await post('/manuals',{id:manualId.value||null,title,category:manualCategory.value,manual_date:manualDate.value,source_url:manualSource.value,tags:manualTags.value,summary:manualSummary.value,content:manualContent.value,attachment_b64,attachment_name});
+  resetManualForm();await loadManuals();alert('Manuale salvato');
+}
+async function summarizeManual(){
+  const content=manualContent.value.trim();if(!content)return alert('Incolla prima il testo');
+  manualSummary.value='Maestra sta sintetizzando...';
+  try{const j=await post('/manual_summary',{content});manualSummary.value=j.text||''}catch(e){manualSummary.value='Errore: '+e.message}
+}
+function editManual(id){
+  const x=manuals.find(m=>Number(m.id)===Number(id));if(!x)return;
+  manualId.value=x.id;manualTitle.value=x.title||'';manualCategory.value=x.category||'Altro';manualDate.value=x.manual_date||'';manualSource.value=x.source_url||'';manualTags.value=x.tags||'';manualSummary.value=x.summary||'';manualContent.value=x.content||'';
+  document.getElementById('manualForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function sourceLink(url){const u=String(url||'').trim();return /^https?:\/\//i.test(u)?'<a href="'+esc(u)+'" target="_blank" rel="noopener">🌐 Fonte</a>':''}
+function openManualFile(id){window.open(api('/manual_file?id='+encodeURIComponent(id)),'_blank')}
+async function deleteManual(id){if(!confirm('Eliminare questo manuale?'))return;await req('/manuals/'+id,{method:'DELETE'});await loadManuals()}
+async function loadManuals(){
+  try{
+    const q=manualSearch?manualSearch.value.trim():'';
+    const j=await req('/manuals'+(q?'?q='+encodeURIComponent(q):''));manuals=j.items||[];
+    manualList.innerHTML=manuals.map(x=>'<div class="manual-card"><h3>'+esc(x.title)+'</h3><div class="manual-meta">'+esc(x.category||'')+(x.manual_date?' · '+esc(x.manual_date):'')+(x.tags?' · '+esc(x.tags):'')+'</div><div class="manual-summary">'+esc(x.summary||'Nessuna sintesi')+'</div><div class="flex" style="flex-wrap:wrap;margin-top:10px">'+sourceLink(x.source_url)+(x.attachment_name?'<button onclick="openManualFile('+x.id+')">📎 PDF</button>':'')+'<button onclick="editManual('+x.id+')">Modifica</button><button onclick="deleteManual('+x.id+')">Elimina</button></div></div>').join('')||'<div class="card muted">Nessun manuale trovato.</div>';
+  }catch(e){manualList.innerHTML='<div class="card muted">Errore manuali: '+esc(e.message)+'</div>'}
+}
+
 async function askAI(){const prompt=aPrompt.value.trim();if(!prompt)return alert('Scrivi una richiesta');aResult.textContent='Maestra sta pensando…';try{let j=await post('/ai',{student_id:aStudent.value||null,prompt});aResult.textContent=j.text||'Nessuna risposta';if(document.getElementById('autoSpeak')?.checked)await speakText(j.text||'')}catch(e){aResult.textContent='Errore AI: '+e.message+'\n\nSe Gemini è occupato, in Automatico Maestra proverà anche AI Task Home Assistant.'}}
 function speakResult(){speakText(aResult.textContent)}
 function dictate(){let R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return alert('Dettatura non supportata da questo browser');let r=new R();r.lang='it-IT';r.onresult=e=>aPrompt.value+=(aPrompt.value?' ':'')+e.results[0][0].transcript;r.start()}
@@ -326,6 +367,6 @@ async function removeKey(){await post('/settings',{remove_gemini_key:true});awai
 async function loadHaTasks(){try{let j=await req('/ha_ai_tasks');const keep=currentSettings.ha_ai_task_entity||'';haTaskSelect.innerHTML='<option value="">Preferito di Home Assistant</option>'+j.items.map(x=>'<option value="'+esc(x.entity_id)+'">'+esc(x.name)+' · '+esc(x.entity_id)+'</option>').join('');haTaskSelect.value=keep;if(!j.items.length)haTaskSelect.innerHTML+='<option disabled>Nessun AI Task trovato</option>'}catch(e){}}
 async function status(){let j=await req('/status');currentSettings=j.settings||{};setTeacher.value=currentSettings.teacher_name||'Giorgia Mauro';setAssistant.value=currentSettings.assistant_name||'Maestra';setModel.value=currentSettings.gemini_model||'gemini-3.8-flash';aiProvider.value=currentSettings.ai_provider||'auto';ttsModel.value=currentSettings.tts_model||'gemini-3.1-flash-tts-preview';autoSpeak.checked=currentSettings.auto_speak!==false;populateVoices();if(currentSettings.tts_voice)voiceSelect.value=currentSettings.tts_voice;await loadHaTasks();setStatus.textContent='Gemini API key: '+(currentSettings.gemini_api_key?'configurata':'non configurata')+' · Motore: '+aiProvider.options[aiProvider.selectedIndex].text}
 async function counts(){let j=await req('/materials');nMaterials.textContent=j.items.length}
-async function init(){try{if(document.getElementById('eDate'))eDate.value=new Date().toISOString().slice(0,10);await loadStudents();await counts();await status();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
+async function init(){try{if(document.getElementById('eDate'))eDate.value=new Date().toISOString().slice(0,10);await loadStudents();await counts();await status();await loadManuals();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
 init();
 </script></body></html>
