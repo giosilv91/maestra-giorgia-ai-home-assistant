@@ -1,3 +1,19 @@
+# 1.6.0
+- Nuovo modulo Lavagna Interattiva touch.
+- Strumenti di scrittura: penna, matita, gesso, pennarello, evidenziatore, stilografica, pennello, neon, tratteggio e gomma.
+- Colore e spessore regolabili.
+- Figure geometriche: linea, freccia, rettangolo, cerchio e triangolo.
+- Testo posizionabile sulla lavagna con tastiera virtuale apribile/nascondibile.
+- Tastiera con lettere, accenti, numeri e simboli matematici.
+- Undo/redo, pulizia lavagna, salvataggio progetto locale e esportazione PNG.
+- Sfondi: lavagna verde, nera, bianca, righe, quadretti e piano cartesiano.
+- Barra laterale richiudibile con ricerca Wikipedia e collegamento Google.
+- Risultati Wikipedia copiabili direttamente sulla lavagna.
+- Importazione immagini e grafici da file, URL o appunti.
+- Grafici rapidi: barre, linea, torta e piano cartesiano.
+- Supporto touch, mouse e penna digitale.
+- Nessuna modifica al database degli alunni.
+
 # 1.5.5
 - Adattamento didattico professionale dalla classe 1a alla 5a primaria.
 - Maestra usa classe, punti di forza, difficolta osservate, strategie efficaci e obiettivi per calibrare struttura e carico senza abbassare automaticamente il livello curricolare.
