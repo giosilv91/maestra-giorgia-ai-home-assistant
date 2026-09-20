@@ -36,15 +36,17 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 }
 .visual-map{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid var(--line);border-radius:18px;padding:12px;margin-top:14px;overflow:auto}.visual-map svg{width:100%;min-width:680px;height:auto;display:block}.manual-card{border:1px solid #e8e0ef;border-radius:16px;padding:14px;margin:10px 0;background:#fff}.manual-card h3{margin:0 0 5px}.manual-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.manual-summary{line-height:1.45}.quick-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.quick-chip{padding:13px;border-radius:14px;border:1px solid #e5dcef;background:#fff;font-weight:750;text-align:left}.private-badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#fff3d8;color:#8b6811;font-size:11px;font-weight:800;margin-left:6px}.visual-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}.visual-card{border:1px solid #e9e1f0;border-radius:16px;padding:14px;text-align:center;background:#fff}.visual-card .icon{font-size:34px}.visual-card b{display:block;margin-top:5px}.camera-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.camera-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.camera-preview{margin-top:10px;border:1px dashed #cdc3df;border-radius:16px;min-height:120px;background:#faf8fd;display:flex;align-items:center;justify-content:center;overflow:hidden}.camera-preview img,.camera-preview canvas{max-width:100%;height:auto;display:block}.camera-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.camera-note{font-size:12px;color:#7c899b;margin-top:6px}.vision-block h3{margin:14px 0 6px}.vision-block ul{margin:6px 0;padding-left:20px}.vision-block li{margin:5px 0}.cam-modal{position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.88);display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px}.cam-modal.open{display:flex}.cam-shell{width:min(760px,100%);background:#111;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}.cam-top{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;color:white}.cam-video{width:100%;max-height:72vh;background:#000;object-fit:contain;display:block}.cam-controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:14px;background:#171717}.cam-controls button{min-width:120px}.cam-title{font-weight:800}.file-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.file-row input{flex:1;min-width:180px}.material-archive{margin-top:18px}.material-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin:10px 0}.material-card h3{margin:0 0 5px;font-size:17px}.material-meta{font-size:12px;color:#7c899b;margin-bottom:8px}.material-actions{display:flex;gap:7px;flex-wrap:wrap}.edit-panel{background:#fffdf7;border:1px solid #eadfbc;border-radius:14px;padding:12px;margin-top:12px}.chip-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.chip-row button{padding:7px 10px;font-size:12px}.danger{border-color:#efc5c5!important;color:#a42323!important;background:#fff7f7!important}
 .board-shell{position:relative;background:#171717;border-radius:20px;overflow:hidden;border:1px solid #2b2b2b;box-shadow:0 16px 40px rgba(0,0,0,.16)}
-.board-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:10px;background:#f7f5fb;border-bottom:1px solid #ded7e7;position:sticky;top:48px;z-index:5}
+.board-toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:10px 66px 10px 10px;background:#f7f5fb;border-bottom:1px solid #ded7e7;position:sticky;top:48px;z-index:5}.board-top-panel{position:relative;background:#f7f5fb;z-index:6}.board-top-panel.collapsed .board-toolbar{display:none}.board-top-toggle{position:absolute;right:10px;bottom:-26px;z-index:12;width:54px;height:28px;padding:0;border-radius:0 0 12px 12px;background:#f7f5fb;border:1px solid #d8d1df;border-top:0;font-size:18px;box-shadow:0 5px 10px rgba(0,0,0,.08)}
 .board-toolbar button{padding:8px 10px}.board-toolbar button.active{background:#5578e8;color:#fff;border-color:#5578e8}.board-toolbar input[type="color"]{width:42px;height:38px;padding:2px}.board-toolbar input[type="range"]{width:110px}
-.board-stage-wrap{position:relative;width:100%;aspect-ratio:16/9;min-height:420px;background:#1d3a2b;touch-action:none;overflow:hidden}
+.board-stage-wrap{position:relative;width:100%;aspect-ratio:16/9;min-height:0;background:#1d3a2b;touch-action:none;overflow:hidden}
 .board-stage-wrap.black{background:#171717}.board-stage-wrap.green{background:#1d3a2b}.board-stage-wrap.white{background:#fff}.board-stage-wrap.lines{background-color:#fff;background-image:repeating-linear-gradient(180deg,transparent 0 42px,#b9d5ff 43px 44px)}.board-stage-wrap.grid{background-color:#fff;background-image:linear-gradient(#d7e3f4 1px,transparent 1px),linear-gradient(90deg,#d7e3f4 1px,transparent 1px);background-size:32px 32px}.board-stage-wrap.cartesian{background-color:#fff;background-image:linear-gradient(#e8edf5 1px,transparent 1px),linear-gradient(90deg,#e8edf5 1px,transparent 1px);background-size:40px 40px}
 #boardCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 .board-side{position:absolute;top:58px;right:0;bottom:0;width:min(380px,86%);background:rgba(255,255,255,.98);border-left:1px solid #ded7e7;z-index:7;transform:translateX(calc(100% - 46px));transition:.24s ease;box-shadow:-10px 0 30px rgba(0,0,0,.12);display:flex}
 .board-side.open{transform:translateX(0)}.board-side-toggle{width:46px;border-radius:0;border:0;border-right:1px solid #e1dce8;background:#f5f1fb;font-size:20px}.board-side-content{padding:12px;overflow:auto;flex:1}
 .board-keyboard{display:none;background:#efedf4;border-top:1px solid #dad4df;padding:10px}.board-keyboard.open{display:block}.board-keys{display:flex;gap:5px;flex-wrap:wrap}.board-keys button{min-width:38px;padding:8px}.board-text-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.board-search-result{border:1px solid #e5dfeb;border-radius:12px;padding:10px;margin-top:8px;background:#fff}.board-search-result b{display:block;margin-bottom:4px}.board-mini{font-size:12px;color:#6f7784}.board-tools-label{font-size:11px;font-weight:800;color:#7b7180;text-transform:uppercase;letter-spacing:.04em;margin-left:4px}.board-divider{width:1px;height:30px;background:#d9d3de;margin:0 2px}.board-image-input{display:none}
-@media(max-width:700px){.board-toolbar{top:48px}.board-stage-wrap{min-height:520px;aspect-ratio:auto}.board-side{top:54px}.board-toolbar input[type="range"]{width:90px}}
+@media(max-width:700px){.board-toolbar{top:48px}.board-stage-wrap{min-height:0;aspect-ratio:16/9}.board-side{top:54px}.board-toolbar input[type="range"]{width:90px}}
+.board-shell.board-fullscreen{position:fixed;inset:0;z-index:16000;border-radius:0;background:#111;overflow:auto;padding:0}.board-shell.board-fullscreen .board-stage-wrap{width:min(100vw,calc(82vh * 16 / 9));aspect-ratio:16/9;margin:28px auto 0}.board-shell.board-fullscreen .board-toolbar{position:static}.board-shell.board-fullscreen .board-side{top:58px}
+.privacy-modal{position:fixed;inset:0;z-index:20000;background:rgba(20,27,40,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}.privacy-modal.open{display:flex}.privacy-box{width:min(420px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 25px 70px rgba(0,0,0,.3);text-align:center}.privacy-lock-icon{font-size:42px}.privacy-box h2{margin:8px 0}.privacy-pin{font-size:30px;text-align:center;letter-spacing:12px;font-weight:800}.privacy-actions{display:flex;gap:8px;justify-content:center;margin-top:12px}.privacy-note{font-size:12px;color:#7c899b;margin-top:10px}
 </style></head><body>
 <div id="splash">
   <div class="splashbox">
@@ -57,7 +59,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 </div>
 <header><div><div class="logo">♡ GM Maestra AI</div><div class="sub">Giorgia Mauro · Sostegno Primaria</div></div><div>Assistente: <b>Maestra</b></div></header>
 <nav>
-<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('quick')">🆘 Intervento</button><button onclick="show('manuals')">📚 Manuali</button><button onclick="show('cameraai')">📷 Fotocamera AI</button><button onclick="show('board')">🖍️ Lavagna</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button>
+<button onclick="show('home')">🏠 Home</button><button onclick="show('students')">👧 Alunni</button><button onclick="show('materials')">📝 Materiali</button><button onclick="show('evals')">📊 Valutazioni</button><button onclick="show('goals')">🎯 Obiettivi</button><button onclick="show('diary')">📔 Diario</button><button onclick="show('quick')">🆘 Intervento</button><button onclick="show('manuals')">📚 Manuali</button><button onclick="show('cameraai')">📷 Fotocamera AI</button><button onclick="show('board')">🖍️ Lavagna</button><button onclick="show('assistant')">🧠 Maestra</button><button onclick="show('settings')">⚙️ Impostazioni</button><button onclick="lockPrivacy()">🔒 Blocca</button>
 </nav>
 <main>
 <section id="home" class="page active">
@@ -221,7 +223,9 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 
 <section id="board" class="page"><h2>🖍️ Lavagna Interattiva</h2>
 <div class="board-shell">
-  <div class="board-toolbar">
+  <div id="boardTopPanel" class="board-top-panel">
+    <button id="boardTopToggle" class="board-top-toggle" onclick="toggleBoardTop()">▲</button>
+    <div class="board-toolbar">
     <span class="board-tools-label">Scrittura</span>
     <button data-board-tool="pen" class="active" onclick="setBoardTool('pen',this)">🖊️ Penna</button>
     <button data-board-tool="pencil" onclick="setBoardTool('pencil',this)">✏️ Matita</button>
@@ -246,6 +250,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
     <label style="margin:0">Spessore <input id="boardSize" type="range" min="1" max="40" value="5" oninput="boardWidth=+this.value"></label>
     <button onclick="boardUndo()">↶</button><button onclick="boardRedo()">↷</button>
     <button onclick="clearBoard()">🗑️ Pulisci</button>
+    <button onclick="toggleBoardFullscreen()">⛶ Fullscreen</button>
+  </div>
   </div>
 
   <div id="boardStage" class="board-stage-wrap green">
@@ -300,6 +306,17 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div class="flex" style="flex-wrap:wrap;margin-top:12px"><button class="primary" onclick="saveSettings()">Salva</button><button onclick="testAI()">Test AI</button><button onclick="removeKey()">Rimuovi chiave</button><button onclick="previewVoice()">🔊 Prova voce</button></div>
 <div id="setStatus" class="muted" style="margin-top:10px"></div></div></section>
 </main>
+<div id="privacyModal" class="privacy-modal" aria-hidden="true">
+  <div class="privacy-box">
+    <div class="privacy-lock-icon">🔐</div>
+    <h2>Area riservata</h2>
+    <div class="muted">Inserisci il PIN per accedere ai dati degli alunni.</div>
+    <input id="privacyPinInput" class="privacy-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••" onkeydown="if(event.key==='Enter')submitPrivacyPin()">
+    <div id="privacyStatus" class="muted" style="margin-top:8px"></div>
+    <div class="privacy-actions"><button class="primary" onclick="submitPrivacyPin()">🔓 Sblocca</button><button onclick="cancelPrivacyUnlock()">Annulla</button></div>
+    <div class="privacy-note">Blocco aggiuntivo dell'app oltre all'accesso Home Assistant.</div>
+  </div>
+</div>
 <div id="cameraModal" class="cam-modal" aria-hidden="true">
   <div class="cam-shell">
     <div class="cam-top"><div id="camTitle" class="cam-title">📷 Fotocamera Maestra</div><button onclick="closeCamera()">✕ Chiudi</button></div>
@@ -315,7 +332,37 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <script>
 const base=location.pathname.replace(/\/$/,''); const api=p=>base+'/api'+p;
 async function req(p,opt={}){const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),210000);try{let r=await fetch(api(p),{headers:{'Content-Type':'application/json'},signal:ctl.signal,...opt});let j=await r.json();if(!j.ok)throw new Error(j.error||'Errore');return j}finally{clearTimeout(timer)}}
-function show(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='board')setTimeout(initBoard,30);}
+const PRIVATE_PAGES=new Set(['students','materials','evals','goals','diary','quick','cameraai','assistant','settings']);
+let privacyPendingPage='',privacyTimer=null;
+function privacyUnlocked(){return Number(sessionStorage.getItem('mg_privacy_until')||0)>Date.now()}
+function displayPage(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='board')setTimeout(initBoard,30)}
+function show(id){
+  if(PRIVATE_PAGES.has(id)&&!privacyUnlocked()){
+    privacyPendingPage=id;
+    const m=document.getElementById('privacyModal');m.classList.add('open');m.setAttribute('aria-hidden','false');
+    document.getElementById('privacyPinInput').value='';document.getElementById('privacyStatus').textContent='';
+    setTimeout(()=>document.getElementById('privacyPinInput').focus(),80);return;
+  }
+  displayPage(id);
+}
+function schedulePrivacyLock(){
+  if(privacyTimer)clearTimeout(privacyTimer);
+  const until=Number(sessionStorage.getItem('mg_privacy_until')||0),ms=until-Date.now();
+  if(ms>0)privacyTimer=setTimeout(()=>{sessionStorage.removeItem('mg_privacy_until');if(PRIVATE_PAGES.has(document.querySelector('.page.active')?.id))displayPage('home')},ms);
+}
+async function submitPrivacyPin(){
+  const pin=document.getElementById('privacyPinInput').value.trim();if(pin.length!==4){document.getElementById('privacyStatus').textContent='Inserisci le 4 cifre.';return}
+  document.getElementById('privacyStatus').textContent='Verifica...';
+  try{
+    await post('/privacy_check',{pin});
+    const until=Date.now()+10*60*1000;sessionStorage.setItem('mg_privacy_until',String(until));schedulePrivacyLock();
+    const m=document.getElementById('privacyModal');m.classList.remove('open');m.setAttribute('aria-hidden','true');
+    const target=privacyPendingPage||'home';privacyPendingPage='';displayPage(target);
+  }catch(e){document.getElementById('privacyStatus').textContent='PIN non corretto';document.getElementById('privacyPinInput').value='';document.getElementById('privacyPinInput').focus()}
+}
+function cancelPrivacyUnlock(){privacyPendingPage='';const m=document.getElementById('privacyModal');m.classList.remove('open');m.setAttribute('aria-hidden','true')}
+function lockPrivacy(){sessionStorage.removeItem('mg_privacy_until');if(privacyTimer)clearTimeout(privacyTimer);privacyTimer=null;if(PRIVATE_PAGES.has(document.querySelector('.page.active')?.id))displayPage('home');}
+
 let students=[],lastMaterial='',materialsArchiveData=[],editingMaterialId=null,currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookCameraCover=null,bookCameraPages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null,cameraStream=null,cameraTarget='',cameraFacing='environment';
 const GEMINI_VOICES=[
  ['Kore','Kore · ferma'],['Aoede','Aoede · ariosa'],['Leda','Leda · giovane'],['Despina','Despina · morbida'],['Erinome','Erinome · chiara'],['Achernar','Achernar · delicata'],['Vindemiatrix','Vindemiatrix · gentile'],['Sulafat','Sulafat · calda'],['Callirrhoe','Callirrhoe · rilassata'],['Laomedeia','Laomedeia · vivace'],['Autonoe','Autonoe · luminosa'],['Pulcherrima','Pulcherrima · decisa']
@@ -578,6 +625,7 @@ async function loadDiary(){if(!dStudent.value)return diaryTable.innerHTML='';let
 
 let boardCtx=null,boardTool='pen',boardColor='#ffffff',boardWidth=5,boardDrawing=false,boardStart=null,boardLast=null,boardPreviewData=null,boardHistory=[],boardRedoStack=[],boardBg='green',boardWikiItems=[];
 function initBoard(){
+  applyBoardTopState();
   if(boardCtx)return;
   const cv=document.getElementById('boardCanvas');if(!cv)return;
   boardCtx=cv.getContext('2d',{willReadFrequently:true});
@@ -756,6 +804,20 @@ function boardCreateGraph(){
     const sum=vals.reduce((a,b)=>a+b,0)||1;let a0=-Math.PI/2;vals.forEach((v,i)=>{const a1=a0+v/sum*Math.PI*2;x.globalAlpha=.25+.65*((i%5)+1)/5;x.beginPath();x.moveTo(ox+w/2,oy-h/2);x.arc(ox+w/2,oy-h/2,220,a0,a1);x.closePath();x.fill();a0=a1});x.globalAlpha=1;
   }
   boardResetStyle();pushBoardHistory();
+}
+function toggleBoardTop(){
+  const p=document.getElementById('boardTopPanel'),b=document.getElementById('boardTopToggle');if(!p||!b)return;
+  p.classList.toggle('collapsed');b.textContent=p.classList.contains('collapsed')?'▼':'▲';
+  try{localStorage.setItem('mg_board_top_collapsed',p.classList.contains('collapsed')?'1':'0')}catch(e){}
+}
+function applyBoardTopState(){
+  const p=document.getElementById('boardTopPanel'),b=document.getElementById('boardTopToggle');if(!p||!b)return;
+  let collapsed=false;try{collapsed=localStorage.getItem('mg_board_top_collapsed')==='1'}catch(e){}
+  p.classList.toggle('collapsed',collapsed);b.textContent=collapsed?'▼':'▲';
+}
+function toggleBoardFullscreen(){
+  const shell=document.querySelector('#board .board-shell');if(!shell)return;
+  shell.classList.toggle('board-fullscreen');
 }
 async function openCamera(target){
   cameraTarget=target;
@@ -993,6 +1055,6 @@ async function removeKey(){await post('/settings',{remove_gemini_key:true});awai
 async function loadHaTasks(){try{let j=await req('/ha_ai_tasks');const keep=currentSettings.ha_ai_task_entity||'';haTaskSelect.innerHTML='<option value="">Preferito di Home Assistant</option>'+j.items.map(x=>'<option value="'+esc(x.entity_id)+'">'+esc(x.name)+' · '+esc(x.entity_id)+'</option>').join('');haTaskSelect.value=keep;if(!j.items.length)haTaskSelect.innerHTML+='<option disabled>Nessun AI Task trovato</option>'}catch(e){}}
 async function status(){let j=await req('/status');currentSettings=j.settings||{};setTeacher.value=currentSettings.teacher_name||'Giorgia Mauro';setAssistant.value=currentSettings.assistant_name||'Maestra';setModel.value=currentSettings.gemini_model||'gemini-3.8-flash';aiProvider.value=currentSettings.ai_provider||'auto';ttsModel.value=currentSettings.tts_model||'gemini-3.1-flash-tts-preview';autoSpeak.checked=currentSettings.auto_speak!==false;populateVoices();if(currentSettings.tts_voice)voiceSelect.value=currentSettings.tts_voice;await loadHaTasks();setStatus.textContent='Gemini API key: '+(currentSettings.gemini_api_key?'configurata':'non configurata')+' · Motore: '+aiProvider.options[aiProvider.selectedIndex].text}
 async function counts(){let j=await req('/materials');nMaterials.textContent=j.items.length}
-async function init(){try{if(document.getElementById('eDate'))eDate.value=new Date().toISOString().slice(0,10);await loadStudents();await loadMaterialsArchive();await counts();await status();await loadManuals();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
+async function init(){try{schedulePrivacyLock();if(document.getElementById('eDate'))eDate.value=new Date().toISOString().slice(0,10);await loadStudents();await loadMaterialsArchive();await counts();await status();await loadManuals();setTimeout(hideSplash,2300)}catch(e){hideSplash();alert(e.message)}}
 init();
 </script></body></html>
