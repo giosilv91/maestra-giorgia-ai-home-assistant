@@ -71,7 +71,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px so
 <div><label>Nome</label><input id="sName"><label>Classe</label><input id="sClass" placeholder="Classe 3ª"></div>
 <div><label>Punti di forza</label><textarea id="sStrengths"></textarea><label>Difficoltà osservate</label><textarea id="sDiff"></textarea></div>
 <div><label>Strategie efficaci</label><textarea id="sStrategies"></textarea><label>Obiettivi generali</label><textarea id="sGoals"></textarea></div>
-</div><button class="primary" onclick="saveStudent()">+ Salva alunno</button><div class="card"><table><thead><tr><th>Nome</th><th>Classe</th><th></th></tr></thead><tbody id="studentsTable"></tbody></table></div></section>
+</div><div class="flex" style="flex-wrap:wrap"><button id="studentSaveBtn" class="primary" onclick="saveStudent()">+ Salva alunno</button><button id="studentCancelBtn" onclick="cancelStudentEdit()" style="display:none">Annulla modifica</button></div><div id="studentEditNote" class="muted" style="display:none;margin:8px 0">✏️ Stai modificando un alunno esistente.</div><div class="card"><table><thead><tr><th>Nome</th><th>Classe</th><th>Azioni</th></tr></thead><tbody id="studentsTable"></tbody></table></div></section>
 
 <section id="materials" class="page"><h2>Materiali didattici</h2>
 <div class="card">
@@ -363,7 +363,7 @@ async function submitPrivacyPin(){
 function cancelPrivacyUnlock(){privacyPendingPage='';const m=document.getElementById('privacyModal');m.classList.remove('open');m.setAttribute('aria-hidden','true')}
 function lockPrivacy(){sessionStorage.removeItem('mg_privacy_until');if(privacyTimer)clearTimeout(privacyTimer);privacyTimer=null;if(PRIVATE_PAGES.has(document.querySelector('.page.active')?.id))displayPage('home');}
 
-let students=[],lastMaterial='',materialsArchiveData=[],editingMaterialId=null,currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookCameraCover=null,bookCameraPages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null,cameraStream=null,cameraTarget='',cameraFacing='environment';
+let students=[],editingStudentId=null,lastMaterial='',materialsArchiveData=[],editingMaterialId=null,currentEvals=[],editingEvalId=null,currentMap=null,manuals=[],bookImages=[],bookCameraCover=null,bookCameraPages=[],bookAnalysis=null,hwImage=null,hwAnalysis=null,handImage=null,handAnalysis=null,cameraStream=null,cameraTarget='',cameraFacing='environment';
 const GEMINI_VOICES=[
  ['Kore','Kore · ferma'],['Aoede','Aoede · ariosa'],['Leda','Leda · giovane'],['Despina','Despina · morbida'],['Erinome','Erinome · chiara'],['Achernar','Achernar · delicata'],['Vindemiatrix','Vindemiatrix · gentile'],['Sulafat','Sulafat · calda'],['Callirrhoe','Callirrhoe · rilassata'],['Laomedeia','Laomedeia · vivace'],['Autonoe','Autonoe · luminosa'],['Pulcherrima','Pulcherrima · decisa']
 ];
@@ -372,10 +372,51 @@ function populateVoices(){const sel=document.getElementById('voiceSelect');if(!s
 async function speakText(text){if(!text||!text.trim())return;const voice=document.getElementById('voiceSelect')?.value||currentSettings.tts_voice||'Kore';try{const r=await fetch(api('/tts'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.slice(0,6000),voice})});if(!r.ok){let t=await r.text();throw new Error(t)}const blob=await r.blob();const url=URL.createObjectURL(blob);const a=new Audio(url);a.onended=()=>URL.revokeObjectURL(url);await a.play()}catch(e){if('speechSynthesis'in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='it-IT';speechSynthesis.speak(u)}else alert('Voce non disponibile: '+e.message)}}
 function previewVoice(){speakText('Ciao Giorgia, sono Maestra. Questa è la voce che hai scelto per me.')}
 function hideSplash(){const s=document.getElementById('splash');if(!s)return;s.classList.add('hide');setTimeout(()=>s.remove(),550)}
-async function loadStudents(){let j=await req('/students');students=j.items;document.getElementById('nStudents').textContent=students.length;let opts='<option value="">—</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+' · '+esc(s.class_name||'')+'</option>').join('');document.querySelectorAll('.studentSelect').forEach(x=>x.innerHTML=opts);document.getElementById('studentsTable').innerHTML=students.map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+esc(s.class_name||'')+'</td><td><button onclick="del(\'students\','+s.id+')">Elimina</button></td></tr>').join('');}
+async function loadStudents(){
+  let j=await req('/students');students=j.items;
+  document.getElementById('nStudents').textContent=students.length;
+  let opts='<option value="">—</option>'+students.map(s=>'<option value="'+s.id+'">'+esc(s.name)+' · '+esc(s.class_name||'')+'</option>').join('');
+  document.querySelectorAll('.studentSelect').forEach(x=>{const keep=x.value;x.innerHTML=opts;if([...x.options].some(o=>o.value===keep))x.value=keep});
+  document.getElementById('studentsTable').innerHTML=students.map(s=>'<tr><td>'+esc(s.name)+'</td><td>'+esc(s.class_name||'')+'</td><td><div class="flex" style="gap:6px;flex-wrap:wrap"><button onclick="editStudent('+s.id+')">✏️ Modifica</button><button class="danger" onclick="deleteStudent('+s.id+')">Elimina</button></div></td></tr>').join('');
+}
 function esc(x){return String(x??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 async function post(p,b){return req(p,{method:'POST',body:JSON.stringify(b)})}
-async function saveStudent(){await post('/students',{name:sName.value,class_name:sClass.value,strengths:sStrengths.value,difficulties:sDiff.value,strategies:sStrategies.value,goals:sGoals.value});['sName','sClass','sStrengths','sDiff','sStrategies','sGoals'].forEach(x=>document.getElementById(x).value='');await loadStudents();}
+function editStudent(id){
+  const s=students.find(x=>Number(x.id)===Number(id));if(!s)return;
+  editingStudentId=s.id;
+  document.getElementById('sName').value=s.name||'';
+  document.getElementById('sClass').value=s.class_name||'';
+  document.getElementById('sStrengths').value=s.strengths||'';
+  document.getElementById('sDiff').value=s.difficulties||'';
+  document.getElementById('sStrategies').value=s.strategies||'';
+  document.getElementById('sGoals').value=s.goals||'';
+  document.getElementById('studentSaveBtn').textContent='💾 Salva modifiche';
+  document.getElementById('studentCancelBtn').style.display='inline-block';
+  document.getElementById('studentEditNote').style.display='block';
+  document.getElementById('students').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function cancelStudentEdit(){
+  editingStudentId=null;
+  ['sName','sClass','sStrengths','sDiff','sStrategies','sGoals'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('studentSaveBtn').textContent='+ Salva alunno';
+  document.getElementById('studentCancelBtn').style.display='none';
+  document.getElementById('studentEditNote').style.display='none';
+}
+async function saveStudent(){
+  const name=document.getElementById('sName').value.trim();if(!name)return alert('Inserisci il nome dell alunno');
+  const wasEditing=!!editingStudentId;
+  await post('/students',{id:editingStudentId||undefined,name,class_name:sClass.value,strengths:sStrengths.value,difficulties:sDiff.value,strategies:sStrategies.value,goals:sGoals.value});
+  cancelStudentEdit();
+  await loadStudents();
+  alert(wasEditing?'Modifiche al profilo salvate':'Alunno salvato');
+}
+async function deleteStudent(id){
+  const s=students.find(x=>Number(x.id)===Number(id));
+  if(!confirm('Eliminare definitivamente '+(s?.name||'questo alunno')+' e i dati collegati?'))return;
+  await req('/students/'+id,{method:'DELETE'});
+  if(Number(editingStudentId)===Number(id))cancelStudentEdit();
+  await loadStudents();await counts();
+}
 async function del(t,id){if(confirm('Eliminare?')){await req('/'+t+'/'+id,{method:'DELETE'});await init()}}
 function addMaterialChange(text){
   const el=document.getElementById('mChanges');const old=el.value.trim();el.value=old?old+'; '+text:text;
