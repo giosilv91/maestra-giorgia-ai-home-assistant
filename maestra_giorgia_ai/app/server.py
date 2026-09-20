@@ -414,6 +414,20 @@ class H(BaseHTTPRequestHandler):
             if p=='/api/diary': return self.sendj({'ok':True,'items':store.all('SELECT * FROM diary WHERE student_id=? ORDER BY diary_date DESC,id DESC',(sid,)) if sid else []})
             if p=='/api/materials': return self.sendj({'ok':True,'items':store.all('SELECT * FROM materials ORDER BY id DESC LIMIT 100')})
             if p=='/api/ha_ai_tasks': return self.sendj({'ok':True,'items':ha_ai_tasks()})
+            if p=='/api/manuals':
+                qv=(q.get('q',[''])[0] or '').strip().lower()
+                items=store.all('SELECT * FROM manuals ORDER BY coalesce(manual_date,updated_at) DESC,id DESC')
+                if qv:
+                    items=[x for x in items if qv in (' '.join(str(x.get(k) or '') for k in ('title','category','tags','summary','content'))).lower()]
+                return self.sendj({'ok':True,'items':items})
+            if p=='/api/manual_file':
+                mid=q.get('id',[None])[0]
+                row=store.one('SELECT attachment_name,attachment_path FROM manuals WHERE id=?',(mid,)) if mid else None
+                if not row or not row.get('attachment_path'): return self.sendj({'ok':False,'error':'Allegato non trovato'},404)
+                path=Path(row['attachment_path'])
+                if not path.exists(): return self.sendj({'ok':False,'error':'File non trovato'},404)
+                raw=path.read_bytes(); name=_manual_file_name(row.get('attachment_name'))
+                self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition','attachment; filename="'+name+'"'); self.send_header('Content-Length',str(len(raw))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(raw); return
             return self.sendj({'ok':False,'error':'Endpoint non trovato'},404)
         except Exception as e:return self.sendj({'ok':False,'error':str(e)},500)
     def do_POST(self):
@@ -465,6 +479,29 @@ class H(BaseHTTPRequestHandler):
                 save_settings(s); return self.sendj({'ok':True})
             if p=='/api/test_ai':
                 return self.sendj({'ok':True,'text':ai_generate('Rispondi soltanto con: Maestra collegata correttamente.')})
+            if p=='/api/concept_map':
+                sid=b.get('student_id'); data=concept_map_generate(b.get('topic',''),store.context(sid) if sid else '',b.get('level') or 'semplice')
+                return self.sendj({'ok':True,'map':data})
+            if p=='/api/manuals':
+                now=datetime.now().isoformat(timespec='seconds'); mid=b.get('id')
+                title=b.get('title','').strip()
+                if not title: raise RuntimeError('Inserisci il titolo del manuale')
+                vals=(title,b.get('category','').strip(),b.get('manual_date','').strip(),b.get('source_url','').strip(),b.get('tags','').strip(),b.get('summary','').strip(),b.get('content','').strip())
+                if mid:
+                    store.write('UPDATE manuals SET title=?,category=?,manual_date=?,source_url=?,tags=?,summary=?,content=?,updated_at=? WHERE id=?',vals+(now,int(mid))); manual_id=int(mid)
+                else:
+                    manual_id=store.write('INSERT INTO manuals(title,category,manual_date,source_url,tags,summary,content,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',vals+(now,now))
+                if b.get('attachment_b64'):
+                    raw=base64.b64decode(b.get('attachment_b64'))
+                    if len(raw)>12*1024*1024: raise RuntimeError('PDF troppo grande: massimo 12 MB')
+                    name=_manual_file_name(b.get('attachment_name') or 'manuale.pdf'); target=MANUAL_DIR/(str(manual_id)+'_'+name); target.write_bytes(raw)
+                    store.write('UPDATE manuals SET attachment_name=?,attachment_path=?,updated_at=? WHERE id=?',(name,str(target),now,manual_id))
+                return self.sendj({'ok':True,'id':manual_id})
+            if p=='/api/manual_summary':
+                content=(b.get('content') or '').strip()
+                if not content: raise RuntimeError('Incolla il testo del manuale o della norma')
+                prompt='Sintetizza questo testo per una docente di sostegno primaria. Sii molto concisa. Restituisci esattamente: 1) COSA DICE in 3 punti; 2) COSA CAMBIA; 3) COSA FARE IN CLASSE/SCUOLA; 4) COSA VERIFICARE SU FONTE UFFICIALE. Non inventare nulla oltre il testo fornito.\n\nTESTO:\n'+content[:18000]
+                return self.sendj({'ok':True,'text':ai_generate(prompt,'')})
             return self.sendj({'ok':False,'error':'Endpoint non trovato'},404)
         except urllib.error.HTTPError as e:
             try:d=e.read().decode()
@@ -474,7 +511,7 @@ class H(BaseHTTPRequestHandler):
     def do_DELETE(self):
         try:
             a=self.route_path().strip('/').split('/')
-            mp={'students':'students','evaluations':'evaluations','goals':'goals','diary':'diary','materials':'materials'}
+            mp={'students':'students','evaluations':'evaluations','goals':'goals','diary':'diary','materials':'materials','manuals':'manuals'}
             if len(a)!=3 or a[1] not in mp:return self.sendj({'ok':False,'error':'Risorsa non valida'},404)
             store.write(f'DELETE FROM {mp[a[1]]} WHERE id=?',(int(a[2]),)); return self.sendj({'ok':True})
         except Exception as e:return self.sendj({'ok':False,'error':str(e)},400)
