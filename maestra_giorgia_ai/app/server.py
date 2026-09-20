@@ -364,6 +364,32 @@ def evaluation_pdf(student_name,period_label,items):
         pages.append(cmds)
     return _pdf_make(pages)
 
+def _manual_file_name(name):
+    name=Path(str(name or 'allegato.pdf')).name
+    stem=re.sub(r'[^A-Za-z0-9._-]+','_',name).strip('._')
+    return stem[:120] or 'allegato.pdf'
+
+def _extract_json_object(text):
+    raw=str(text or '').strip()
+    if raw.startswith('\\x60\\x60\\x60'):
+        raw=raw.split('\\n',1)[1] if '\\n' in raw else raw
+    if raw.endswith('\\x60\\x60\\x60'):
+        raw=raw[:-3]
+    a=raw.find('{'); b=raw.rfind('}')
+    if a<0 or b<a: raise RuntimeError('La mappa AI non ha restituito JSON valido')
+    return json.loads(raw[a:b+1])
+
+def concept_map_generate(topic,student_context='',level='semplice'):
+    prompt="Crea una MAPPA CONCETTUALE VISIVA per scuola primaria.\\nArgomento: "+str(topic)+"\\nLivello: "+str(level)+"\\nRegole: massimo 6 rami; ogni ramo massimo 3 sotto-concetti; frasi di 1-5 parole; linguaggio molto semplice; usa un emoji pertinente per ogni ramo; niente informazioni private sull alunno. Restituisci SOLO JSON valido nel formato: {\\\"title\\\":\\\"titolo breve\\\",\\\"branches\\\":[{\\\"label\\\":\\\"ramo\\\",\\\"emoji\\\":\\\"🔹\\\",\\\"children\\\":[\\\"idea 1\\\",\\\"idea 2\\\"]}]}"
+    data=_extract_json_object(ai_generate(prompt,student_context))
+    title=str(data.get('title') or topic)[:80]
+    branches=[]
+    for branch in (data.get('branches') or [])[:6]:
+        if not isinstance(branch,dict): continue
+        branches.append({'label':str(branch.get('label') or '')[:50],'emoji':str(branch.get('emoji') or '🔹')[:4],'children':[str(x)[:55] for x in (branch.get('children') or [])[:3]]})
+    if not branches: raise RuntimeError('La mappa non contiene rami validi')
+    return {'title':title,'branches':branches}
+
 class H(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
     def route_path(self): return urlparse(self.path).path
