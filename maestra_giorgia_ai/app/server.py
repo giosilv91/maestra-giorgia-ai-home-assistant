@@ -120,6 +120,67 @@ def gemini(prompt,context=''):
             time.sleep(1.0*(attempt+1))
     raise RuntimeError(f'Gemini non disponibile: {last}')
 
+
+def _extract_json(text):
+    raw=str(text or '').strip()
+    raw=raw.replace('\`\`\`json','').replace('\`\`\`JSON','').replace('\`\`\`','').strip()
+    start=raw.find('{'); end=raw.rfind('}')
+    if start<0 or end<start:
+        raise RuntimeError('Gemini non ha restituito JSON valido')
+    return json.loads(raw[start:end+1])
+
+def gemini_vision(mode,images,subject='',task_type='',writing_type=''):
+    settings=load_settings()
+    key=(settings.get('gemini_api_key') or '').strip()
+    if not key:
+        raise RuntimeError('Inserisci la Gemini API key nelle Impostazioni')
+    model=settings.get('gemini_model') or 'gemini-3.8-flash'
+    if mode=='book':
+        prompt=(
+            'Analizza le immagini di un libro per scuola primaria. Restituisci SOLO JSON valido con queste chiavi: '
+            '{"title":"","author":"","topic":"","grade_level":"","summary_short":"","summary_simple":"","keywords":[],"questions":[]}. '
+            'Riassumi solo cio che e realmente visibile nelle immagini. Se titolo o autore non sono leggibili scrivi "non leggibile". '
+            'summary_short massimo 8 righe. summary_simple usa frasi brevi e parole facili. keywords massimo 6. questions massimo 5.'
+        )
+    elif mode=='homework':
+        prompt=(
+            'Analizza il compito fotografato. Materia indicata: '+str(subject or 'non specificata')+
+            '. Tipo: '+str(task_type or 'compito')+
+            '. Restituisci SOLO JSON valido con queste chiavi: '
+            '{"subject":"","detected_text":"","errors":[{"label":"","correction":"","note":"","x":0,"y":0,"w":0,"h":0}],"strengths":[],"child_explanation":"","recovery_activity":""}. '
+            'Le coordinate x,y,w,h sono da 0 a 1000 rispetto alla foto. Inserisci coordinate solo quando la zona e chiaramente localizzabile. '
+            'Non inventare errori. Controlla ortografia, calcolo, procedimento e consegna in base a cio che e visibile. '
+            'La spiegazione al bambino deve essere breve e rispettosa.'
+        )
+    elif mode=='handwriting':
+        prompt=(
+            'Osserva questa scrittura in ottica didattica e grafomotoria. Tipo indicato: '+str(writing_type or 'non specificato')+
+            '. Restituisci SOLO JSON valido con queste chiavi: '
+            '{"writing_type":"","legibility":"","spacing":"","alignment":"","letter_shape":"","motor_observations":"","strengths":[],"improvements":[],"exercises":[]}. '
+            'Descrivi solo caratteristiche visibili: leggibilita, dimensione, spaziatura, rigo, regolarita, forma e continuita apparente del tratto. '
+            'Non dedurre personalita, ansia, intelligenza, diagnosi, DSA o altre condizioni cliniche. Massimo 5 esercizi pratici.'
+        )
+    else:
+        raise RuntimeError('Modalita visione non valida')
+
+    parts=[{'text':PROMPT+'\\n\\n'+prompt}]
+    for image in (images or [])[:6]:
+        data=(image.get('data') or '').strip() if isinstance(image,dict) else ''
+        if not data:
+            continue
+        mime=(image.get('mime') or 'image/jpeg') if isinstance(image,dict) else 'image/jpeg'
+        parts.append({'inlineData':{'mimeType':mime,'data':data}})
+    if len(parts)==1:
+        raise RuntimeError('Nessuna immagine ricevuta')
+
+    url=f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}'
+    body={'contents':[{'parts':parts}],'generationConfig':{'temperature':0.2}}
+    out=_http_json(url,body,{'Content-Type':'application/json'},240)
+    text=''.join(p.get('text','') for p in out.get('candidates',[{}])[0].get('content',{}).get('parts',[])).strip()
+    if not text:
+        raise RuntimeError(out.get('error',{}).get('message','Gemini Vision non ha restituito una risposta'))
+    return _extract_json(text)
+
 def _ha_headers():
     token=os.environ.get('SUPERVISOR_TOKEN','').strip()
     if not token: raise RuntimeError('Token Home Assistant non disponibile')
@@ -470,6 +531,15 @@ class H(BaseHTTPRequestHandler):
                 pdf=evaluation_pdf(student.get('name','Alunno'),b.get('period_label') or 'Periodo selezionato',items)
                 filename=_safe_filename('Valutazioni_'+student.get('name','Alunno'),'valutazioni')+'.pdf'
                 self.send_response(200); self.send_header('Content-Type','application/pdf'); self.send_header('Content-Disposition',f'attachment; filename="{filename}"'); self.send_header('Content-Length',str(len(pdf))); self.send_header('Cache-Control','no-store'); self.end_headers(); self.wfile.write(pdf); return
+            if p=='/api/vision':
+                result=gemini_vision(
+                    b.get('mode',''),
+                    b.get('images') or [],
+                    b.get('subject',''),
+                    b.get('task_type',''),
+                    b.get('writing_type','')
+                )
+                return self.sendj({'ok':True,'result':result})
             if p=='/api/settings':
                 s=load_settings()
                 for k in ('teacher_name','assistant_name','gemini_model','ai_provider','ha_ai_task_entity','tts_voice','tts_model','auto_speak'):
