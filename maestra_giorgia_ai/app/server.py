@@ -49,6 +49,18 @@ class Store:
                 WHERE lower(trim(coalesce(activity,''))) IN ('orale','interrogazione')
                   AND lower(trim(coalesce(eval_type,'')))=''""")
             self.db.commit()
+            if self.db.execute("SELECT COUNT(*) FROM manuals").fetchone()[0]==0:
+                now=datetime.now().isoformat(timespec='seconds')
+                seed=[
+                    ('De-escalation in classe - guida rapida','Comportamento','','','crisi,calma,classe','Ridurre stimoli, parlare poco e con tono calmo, offrire una scelta semplice e attendere.','1. Metti in sicurezza lo spazio.\n2. Riduci parole e richieste.\n3. Usa tono calmo e neutro.\n4. Offri due scelte semplici.\n5. Aspetta il tempo necessario.\n6. Dopo la calma, riparti con una richiesta facile.'),
+                    ('Task analysis - scomporre un compito','Metodi educativi','','','task analysis,autonomia','Dividere un compito in piccoli passaggi osservabili e insegnarli uno alla volta.','Scrivi il compito finale.\nDividilo in 4-8 passaggi semplici.\nMostra un passaggio per volta.\nSegna quali passaggi sono autonomi e quali richiedono aiuto.\nRiduci gradualmente l aiuto.'),
+                    ('Prompting e fading - guida pratica','Metodi educativi','','','prompting,fading,aiuto','Dare il minimo aiuto necessario e ridurlo gradualmente per aumentare autonomia.','Ordine consigliato quando possibile: indizio visivo, gesto, breve suggerimento verbale, modello.\nRiduci l aiuto appena il bambino mostra competenza.\nPremia il tentativo autonomo.'),
+                    ('Routine visiva e anticipazione','Strategie pratiche','','','routine,visuale,anticipazione','Mostrare prima cosa succede riduce incertezza e richieste verbali ripetute.','Usa 3-6 immagini in ordine.\nMostra ADESSO e DOPO.\nSpunta ogni passaggio concluso.\nAvvisa prima dei cambiamenti.'),
+                    ('CAA - principi operativi di base','CAA / visuale','','','caa,comunicazione,simboli','Usare simboli, immagini e parole per sostenere comprensione ed espressione.','Tieni i simboli visibili e raggiungibili.\nUsa poche alternative alla volta.\nAccompagna simbolo e parola.\nConferma ogni tentativo comunicativo.'),
+                    ('Checklist per nuova normativa','Normativa scolastica','','','leggi,normativa,fonte','Scheda neutra per archiviare una nuova norma senza confonderla con interpretazioni.','Salva titolo completo, data, fonte ufficiale e link.\nIncolla il testo o il passaggio rilevante.\nAggiungi una sintesi: cosa cambia, da quando, per chi, cosa deve fare la scuola.\nNon considerare una sintesi AI come fonte ufficiale.')
+                ]
+                self.db.executemany("INSERT INTO manuals(title,category,manual_date,source_url,tags,summary,content,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)",[x+(now,now) for x in seed])
+                self.db.commit()
     def all(self,sql,args=()):
         with self.lock:return [dict(x) for x in self.db.execute(sql,args).fetchall()]
     def one(self,sql,args=()):
