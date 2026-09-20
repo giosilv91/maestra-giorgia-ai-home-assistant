@@ -1,3 +1,12 @@
+# 1.6.2
+- I profili alunni ora possono essere modificati dopo il salvataggio.
+- Nuovo pulsante Modifica accanto a ogni alunno.
+- La modifica carica Nome, Classe, Punti di forza, Difficolta osservate, Strategie efficaci e Obiettivi generali nel modulo.
+- Salva modifiche aggiorna lo stesso profilo senza creare duplicati.
+- Nuovo pulsante Annulla modifica.
+- Eliminazione resa piu chiara con conferma sul nome dell alunno.
+- Nessuna modifica ai dati gia presenti.
+
 # 1.6.1
 - Nuovo blocco privacy con PIN per le aree che mostrano dati degli alunni.
 - PIN verificato dal backend e non inserito nell HTML.
