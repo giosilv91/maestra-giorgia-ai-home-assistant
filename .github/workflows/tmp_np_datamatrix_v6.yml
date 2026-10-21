@@ -1,0 +1,62 @@
+name: Build NP DataMatrix V6 APK
+
+on:
+  push:
+    branches:
+      - tmp-np-datamatrix-v6
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Patch V6 - no Google Lens fallback
+        run: |
+          python3 - <<'PY'
+          p='tmp_np_datamatrix_v5/app/src/main/java/com/np/datamatrixv5/MainActivity.kt'
+          s=open(p,encoding='utf-8').read()
+          if 'import androidx.camera.core.ImageCaptureException' not in s:
+              s=s.replace('import androidx.camera.core.ImageCapture\n', 'import androidx.camera.core.ImageCapture\nimport androidx.camera.core.ImageCaptureException\n')
+          s=s.replace('singleLine = true', 'isSingleLine = true')
+          s=s.replace('NP • DATAMATRIX V5', 'NP • DATAMATRIX V6')
+          s=s.replace('if (image == null) {\n            tryFallbackScanner()\n            return\n        }', 'if (image == null) {\n            noCode("Immagine non valida. Premi SCATTA e riprova.")\n            return\n        }')
+          s=s.replace('else tryFallbackScanner()', 'else noCode("DataMatrix non letto nello scatto. Premi SCATTA e riprova.")')
+          open(p,'w',encoding='utf-8').write(s)
+
+          g='tmp_np_datamatrix_v5/app/build.gradle.kts'
+          b=open(g,encoding='utf-8').read()
+          b=b.replace('applicationId = "com.np.datamatrixv5"', 'applicationId = "com.np.datamatrixv6"')
+          b=b.replace('versionCode = 5', 'versionCode = 6')
+          b=b.replace('versionName = "5.0"', 'versionName = "6.0"')
+          open(g,'w',encoding='utf-8').write(b)
+          PY
+
+      - name: Build APK
+        run: gradle -p tmp_np_datamatrix_v5 --no-daemon assembleDebug
+
+      - name: Prepare APK
+        run: cp tmp_np_datamatrix_v5/app/build/outputs/apk/debug/app-debug.apk NP_DataMatrix_V6.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NP_DataMatrix_V6_Android
+          path: NP_DataMatrix_V6.apk
+          if-no-files-found: error
