@@ -27,16 +27,17 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Fix CameraX analysis builder
+      - name: Patch scanner source
         run: |
           python3 - <<'PY'
           p='tmp_np_datamatrix_v2/app/src/main/java/com/np/datamatrix/MainActivity.kt'
           s=open(p,encoding='utf-8').read()
           old='''val analysis = ImageAnalysis.Builder()\n                .setTargetAspectRatio(AspectRatio.RATIO_4_3)\n                .setTargetResolution(Size(1280, 960))'''
           new='''val analysis = ImageAnalysis.Builder()\n                .setTargetResolution(Size(1280, 960))'''
-          if old not in s:
-              raise SystemExit('analysis builder pattern not found')
-          open(p,'w',encoding='utf-8').write(s.replace(old,new,1))
+          s=s.replace(old,new,1)
+          s=s.replace('import com.google.mlkit.vision.barcode.Barcode','import com.google.mlkit.vision.barcode.common.Barcode')
+          s=s.replace('permissions: Array<out String>,','permissions: Array<String>,')
+          open(p,'w',encoding='utf-8').write(s)
           PY
 
       - name: Build installable APK
