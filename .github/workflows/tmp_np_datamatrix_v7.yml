@@ -38,8 +38,8 @@ jobs:
           s=s.replace('versionCode = 5', 'versionCode = 7')
           s=s.replace('versionName = "5.0"', 'versionName = "7.0"')
           s=s.replace('implementation("com.google.android.gms:play-services-code-scanner:16.1.0")\n', '')
-          if 'io.github.zxing-cpp:android:3.1.1' not in s:
-              s=s.replace('implementation("com.google.zxing:core:3.5.3")', 'implementation("com.google.zxing:core:3.5.3")\n    implementation("io.github.zxing-cpp:android:3.1.1")')
+          if 'io.github.zxing-cpp:android:2.3.0' not in s:
+              s=s.replace('implementation("com.google.zxing:core:3.5.3")', 'implementation("com.google.zxing:core:3.5.3")\n    implementation("io.github.zxing-cpp:android:2.3.0")')
           p.write_text(s,encoding='utf-8')
 
           p=Path('tmp_np_datamatrix_v5/app/src/main/AndroidManifest.xml')
