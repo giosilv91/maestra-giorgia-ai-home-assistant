@@ -27,6 +27,17 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Patch Kotlin compile fixes
+        run: |
+          python3 - <<'PY'
+          p='tmp_np_datamatrix_v5/app/src/main/java/com/np/datamatrixv5/MainActivity.kt'
+          s=open(p,encoding='utf-8').read()
+          if 'import androidx.camera.core.ImageCaptureException' not in s:
+              s=s.replace('import androidx.camera.core.ImageCapture\n', 'import androidx.camera.core.ImageCapture\nimport androidx.camera.core.ImageCaptureException\n')
+          s=s.replace('singleLine = true', 'isSingleLine = true')
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+
       - name: Build APK
         run: gradle -p tmp_np_datamatrix_v5 --no-daemon assembleDebug
 
