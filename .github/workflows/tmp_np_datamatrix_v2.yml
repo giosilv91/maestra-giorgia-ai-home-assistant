@@ -1,0 +1,53 @@
+name: Build NP DataMatrix V2 APK
+
+on:
+  push:
+    branches:
+      - tmp-np-datamatrix-v2
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Fix CameraX analysis builder
+        run: |
+          python3 - <<'PY'
+          p='tmp_np_datamatrix_v2/app/src/main/java/com/np/datamatrix/MainActivity.kt'
+          s=open(p,encoding='utf-8').read()
+          old='''val analysis = ImageAnalysis.Builder()\n                .setTargetAspectRatio(AspectRatio.RATIO_4_3)\n                .setTargetResolution(Size(1280, 960))'''
+          new='''val analysis = ImageAnalysis.Builder()\n                .setTargetResolution(Size(1280, 960))'''
+          if old not in s:
+              raise SystemExit('analysis builder pattern not found')
+          open(p,'w',encoding='utf-8').write(s.replace(old,new,1))
+          PY
+
+      - name: Build installable APK
+        run: gradle -p tmp_np_datamatrix_v2 --no-daemon assembleDebug
+
+      - name: Prepare APK
+        run: cp tmp_np_datamatrix_v2/app/build/outputs/apk/debug/app-debug.apk NP_DataMatrix_V2.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NP_DataMatrix_V2_Android
+          path: NP_DataMatrix_V2.apk
+          if-no-files-found: error
