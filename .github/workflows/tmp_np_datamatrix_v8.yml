@@ -1,0 +1,115 @@
+name: Build NP DataMatrix V8 APK
+
+on:
+  push:
+    branches:
+      - tmp-np-datamatrix-v8
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Patch V8 high-resolution DataMatrix reader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('tmp_np_datamatrix_v5/app/build.gradle.kts')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('namespace = "com.np.datamatrixv5"', 'namespace = "com.np.datamatrixv8"')
+          s=s.replace('applicationId = "com.np.datamatrixv5"', 'applicationId = "com.np.datamatrixv8"')
+          s=s.replace('versionCode = 5', 'versionCode = 8')
+          s=s.replace('versionName = "5.0"', 'versionName = "8.0"')
+          s=s.replace('implementation("com.google.android.gms:play-services-code-scanner:16.1.0")\n', '')
+          if 'io.github.zxing-cpp:android:2.3.0' not in s:
+              s=s.replace('implementation("com.google.zxing:core:3.5.3")', 'implementation("com.google.zxing:core:3.5.3")\n    implementation("io.github.zxing-cpp:android:2.3.0")')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('tmp_np_datamatrix_v5/app/src/main/AndroidManifest.xml')
+          s=p.read_text(encoding='utf-8').replace('NP DataMatrix V5','NP DataMatrix V8')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('tmp_np_datamatrix_v5/app/src/main/java/com/np/datamatrixv5/MainActivity.kt')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('package com.np.datamatrixv5','package com.np.datamatrixv8')
+          s=s.replace('NP • DATAMATRIX V5','NP • DATAMATRIX V8')
+          if 'import androidx.camera.core.ImageCaptureException' not in s:
+              s=s.replace('import androidx.camera.core.ImageCapture\n', 'import androidx.camera.core.ImageCapture\nimport androidx.camera.core.ImageCaptureException\n')
+          if 'import androidx.camera.core.ImageAnalysis' not in s:
+              s=s.replace('import androidx.camera.core.ImageCaptureException\n', 'import androidx.camera.core.ImageCaptureException\nimport androidx.camera.core.ImageAnalysis\n')
+          if 'import android.graphics.Rect\n' not in s:
+              s=s.replace('import android.graphics.RectF\n', 'import android.graphics.Rect\nimport android.graphics.RectF\n')
+          if 'import zxingcpp.BarcodeReader' not in s:
+              s=s.replace('import kotlin.math.max\n', 'import kotlin.math.max\nimport zxingcpp.BarcodeReader\nimport java.util.concurrent.Executors\n')
+          s=s.replace('singleLine = true','isSingleLine = true')
+          for imp in [
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner\n',
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions\n',
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScanning\n']:
+              s=s.replace(imp,'')
+
+          old='''    private val mlScanner by lazy {\n        val options = BarcodeScannerOptions.Builder()\n            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)\n            .build()\n        BarcodeScanning.getClient(options)\n    }\n\n    private val gmsScanner: GmsBarcodeScanner by lazy {\n        val options = GmsBarcodeScannerOptions.Builder()\n            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)\n            .enableAutoZoom()\n            .build()\n        GmsBarcodeScanning.getClient(this, options)\n    }\n'''
+          new='''    private val mlScanner by lazy {\n        val options = BarcodeScannerOptions.Builder()\n            .setBarcodeFormats(\n                Barcode.FORMAT_DATA_MATRIX,\n                Barcode.FORMAT_QR_CODE,\n                Barcode.FORMAT_AZTEC,\n                Barcode.FORMAT_PDF417,\n                Barcode.FORMAT_CODE_128,\n                Barcode.FORMAT_CODE_39,\n                Barcode.FORMAT_ITF,\n                Barcode.FORMAT_EAN_13,\n                Barcode.FORMAT_EAN_8,\n                Barcode.FORMAT_UPC_A,\n                Barcode.FORMAT_UPC_E\n            )\n            .build()\n        BarcodeScanning.getClient(options)\n    }\n\n    private val cppMatrixReader by lazy {\n        BarcodeReader(BarcodeReader.Options(\n            formats = setOf(BarcodeReader.Format.DATA_MATRIX),\n            tryHarder = true,\n            tryRotate = true,\n            tryInvert = true,\n            tryDownscale = false,\n            isPure = false,\n            binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE,\n            maxNumberOfSymbols = 4\n        ))\n    }\n\n    private val cppAnyReader by lazy {\n        BarcodeReader(BarcodeReader.Options(\n            tryHarder = true,\n            tryRotate = true,\n            tryInvert = true,\n            tryDownscale = false,\n            isPure = false,\n            binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE,\n            maxNumberOfSymbols = 8\n        ))\n    }\n\n    private val analyzerExecutor = Executors.newSingleThreadExecutor()\n    @Volatile private var lastLiveCode: String? = null\n    @Volatile private var lastLiveFormat: String = ""\n    @Volatile private var lastLiveAt: Long = 0L\n'''
+          if old not in s: raise SystemExit('scanner block not found')
+          s=s.replace(old,new)
+
+          old='''                provider.unbindAll()\n                camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)\n                camera?.cameraControl?.setZoomRatio(1.0f)\n                status.text = "Inquadra come nella fotocamera Samsung e premi SCATTA"\n'''
+          new='''                val analysis = ImageAnalysis.Builder()\n                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)\n                    .build()\n                analysis.setAnalyzer(analyzerExecutor) { image ->\n                    try {\n                        val matrixHit = image.use { cppMatrixReader.read(it) }\n                            .firstOrNull { !it.text.isNullOrBlank() }\n                        if (matrixHit != null) {\n                            lastLiveCode = matrixHit.text?.trim()\n                            lastLiveFormat = matrixHit.format.toString()\n                            lastLiveAt = System.currentTimeMillis()\n                        }\n                    } catch (_: Exception) {\n                        try { image.close() } catch (_: Exception) {}\n                    }\n                }\n                provider.unbindAll()\n                camera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, analysis)\n                try { camera?.cameraControl?.setZoomRatio(2.0f) } catch (_: Exception) {}\n                status.text = "Inquadra il codice e premi SCATTA • zoom 2× • lettura HD interna"\n'''
+          if old not in s: raise SystemExit('bind block not found')
+          s=s.replace(old,new)
+
+          old='''                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {\n                        status.text = "Analizzo lo scatto…"\n                        decodeStill(file)\n                    }\n'''
+          new='''                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {\n                        status.text = "Analizzo lo scatto HD…"\n                        analyzerExecutor.execute {\n                            val cpp = tryCppStill(file)\n                            runOnUiThread {\n                                if (cpp != null) {\n                                    showDetected(cpp.first, "ZXing-C++ HD ${cpp.second}")\n                                } else {\n                                    decodeStill(file)\n                                }\n                            }\n                        }\n                    }\n'''
+          if old not in s: raise SystemExit('saved block not found')
+          s=s.replace(old,new)
+
+          s=s.replace('''                val value = barcodes.firstOrNull { it.format == Barcode.FORMAT_DATA_MATRIX }\n                    ?.rawValue?.trim().orEmpty()''','''                val value = barcodes.firstOrNull { !it.rawValue.isNullOrBlank() }\n                    ?.rawValue?.trim().orEmpty()''')
+          s=s.replace('''                    if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else tryFallbackScanner()''','''                    if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else noCode("Codice non letto. Avvicina il codice e riprova.")''')
+          s=s.replace('''                if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else tryFallbackScanner()''','''                if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else noCode("Codice non letto. Avvicina il codice e riprova.")''')
+          s=s.replace('''        if (image == null) {\n            tryFallbackScanner()\n            return\n        }''','''        if (image == null) {\n            noCode("Immagine non analizzabile. Riprova.")\n            return\n        }''')
+          a=s.find('    private fun tryFallbackScanner() {')
+          b=s.find('    private fun tryZxing(file: File): String?', a)
+          if a != -1 and b != -1: s=s[:a]+s[b:]
+          s=s.replace('DataMatrix letto ($source). Confermi?', 'Codice letto ($source). Confermi?')
+
+          insert_before='''    private fun tryZxing(file: File): String? {\n'''
+          helper='''    private fun tryCppStill(file: File): Pair<String, String>? {\n        val bitmap = decodeScaledBitmap(file, 4096) ?: return null\n        val w = bitmap.width\n        val h = bitmap.height\n        if (w < 8 || h < 8) return null\n\n        val rects = listOf(\n            Rect(0, 0, w, h),\n            Rect((w * 0.12f).toInt(), (h * 0.08f).toInt(), (w * 0.88f).toInt(), (h * 0.68f).toInt()),\n            Rect((w * 0.22f).toInt(), (h * 0.12f).toInt(), (w * 0.78f).toInt(), (h * 0.58f).toInt()),\n            Rect((w * 0.18f).toInt(), (h * 0.18f).toInt(), (w * 0.82f).toInt(), (h * 0.78f).toInt())\n        ).filter { it.width() > 20 && it.height() > 20 }\n\n        fun readWith(reader: BarcodeReader): Pair<String, String>? {\n            for (rect in rects) {\n                for (rotation in intArrayOf(0, 90, 180, 270)) {\n                    try {\n                        val hit = reader.read(bitmap, rect, rotation)\n                            .firstOrNull { !it.text.isNullOrBlank() }\n                        val text = hit?.text?.trim().orEmpty()\n                        if (text.isNotBlank()) return text to hit!!.format.toString()\n                    } catch (_: Exception) {}\n                }\n            }\n            return null\n        }\n\n        readWith(cppMatrixReader)?.let { return it }\n\n        try {\n            val tight = Rect(\n                (w * 0.25f).toInt(), (h * 0.12f).toInt(),\n                (w * 0.75f).toInt(), (h * 0.58f).toInt()\n            )\n            val crop = Bitmap.createBitmap(bitmap, tight.left, tight.top, tight.width(), tight.height())\n            val scaled = Bitmap.createScaledBitmap(crop, crop.width * 2, crop.height * 2, false)\n            for (rotation in intArrayOf(0, 90, 180, 270)) {\n                val hit = cppMatrixReader.read(scaled, Rect(0, 0, scaled.width, scaled.height), rotation)\n                    .firstOrNull { !it.text.isNullOrBlank() }\n                val text = hit?.text?.trim().orEmpty()\n                if (text.isNotBlank()) return text to hit!!.format.toString()\n            }\n        } catch (_: Exception) {}\n\n        return readWith(cppAnyReader)\n    }\n\n'''
+          if insert_before not in s: raise SystemExit('tryZxing marker not found')
+          s=s.replace(insert_before, helper + insert_before)
+
+          marker='''    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()\n'''
+          if marker in s and 'override fun onDestroy()' not in s:
+              s=s.replace(marker, '''    override fun onDestroy() {\n        super.onDestroy()\n        analyzerExecutor.shutdownNow()\n        try { mlScanner.close() } catch (_: Exception) {}\n    }\n\n''' + marker)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Build APK
+        run: gradle -p tmp_np_datamatrix_v5 --no-daemon assembleDebug
+
+      - name: Prepare APK
+        run: cp tmp_np_datamatrix_v5/app/build/outputs/apk/debug/app-debug.apk NP_DataMatrix_V8.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NP_DataMatrix_V8_Android
+          path: NP_DataMatrix_V8.apk
+          if-no-files-found: error
