@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="np_blue">#0B2A5B</color>
+    <color name="np_red">#D71920</color>
+    <color name="np_green">#149447</color>
+    <color name="np_orange">#E08A00</color>
+    <color name="np_bg">#F4F6F9</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#111111</color>
+</resources>
