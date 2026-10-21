@@ -1,1 +1,122 @@
-name: placeholder
+name: Build NP DataMatrix V9 APK
+
+on:
+  push:
+    branches:
+      - tmp-np-datamatrix-v9
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Patch V9 Keyence ECC200 reader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('tmp_np_datamatrix_v5/app/build.gradle.kts')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('namespace = "com.np.datamatrixv5"', 'namespace = "com.np.datamatrixv9"')
+          s=s.replace('applicationId = "com.np.datamatrixv5"', 'applicationId = "com.np.datamatrixv9"')
+          s=s.replace('versionCode = 5', 'versionCode = 9')
+          s=s.replace('versionName = "5.0"', 'versionName = "9.0"')
+          s=s.replace('implementation("com.google.android.gms:play-services-code-scanner:16.1.0")\n', '')
+          if 'io.github.zxing-cpp:android:2.3.0' not in s:
+              s=s.replace('implementation("com.google.zxing:core:3.5.3")', 'implementation("com.google.zxing:core:3.5.3")\n    implementation("io.github.zxing-cpp:android:2.3.0")\n    implementation("androidx.exifinterface:exifinterface:1.3.7")')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('tmp_np_datamatrix_v5/app/src/main/AndroidManifest.xml')
+          s=p.read_text(encoding='utf-8').replace('NP DataMatrix V5','NP DataMatrix V9')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('tmp_np_datamatrix_v5/app/src/main/java/com/np/datamatrixv5/MainActivity.kt')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('package com.np.datamatrixv5','package com.np.datamatrixv9')
+          s=s.replace('NP • DATAMATRIX V5','NP • DATAMATRIX V9')
+          s=s.replace('singleLine = true','isSingleLine = true')
+
+          # Imports
+          if 'import android.graphics.Matrix\n' not in s:
+              s=s.replace('import android.graphics.Color\n', 'import android.graphics.Color\nimport android.graphics.Matrix\nimport android.graphics.Rect\n')
+          if 'import androidx.exifinterface.media.ExifInterface\n' not in s:
+              s=s.replace('import androidx.core.content.ContextCompat\n', 'import androidx.core.content.ContextCompat\nimport androidx.exifinterface.media.ExifInterface\n')
+          if 'import zxingcpp.BarcodeReader\n' not in s:
+              s=s.replace('import kotlin.math.max\n', 'import kotlin.math.max\nimport zxingcpp.BarcodeReader\nimport java.util.concurrent.Executors\n')
+          if 'import androidx.camera.core.ImageCaptureException\n' not in s:
+              s=s.replace('import androidx.camera.core.ImageCapture\n', 'import androidx.camera.core.ImageCapture\nimport androidx.camera.core.ImageCaptureException\n')
+          for imp in [
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScanner\n',
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions\n',
+              'import com.google.mlkit.vision.codescanner.GmsBarcodeScanning\n']:
+              s=s.replace(imp,'')
+
+          old='''    private val mlScanner by lazy {\n        val options = BarcodeScannerOptions.Builder()\n            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)\n            .build()\n        BarcodeScanning.getClient(options)\n    }\n\n    private val gmsScanner: GmsBarcodeScanner by lazy {\n        val options = GmsBarcodeScannerOptions.Builder()\n            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)\n            .enableAutoZoom()\n            .build()\n        GmsBarcodeScanning.getClient(this, options)\n    }\n'''
+          new='''    private val mlScanner by lazy {\n        val options = BarcodeScannerOptions.Builder()\n            .setBarcodeFormats(Barcode.FORMAT_DATA_MATRIX)\n            .build()\n        BarcodeScanning.getClient(options)\n    }\n\n    private fun makeCppReader(dataMatrixOnly: Boolean): BarcodeReader {\n        val formats = if (dataMatrixOnly) setOf(BarcodeReader.Format.DATA_MATRIX) else setOf<BarcodeReader.Format>()\n        return BarcodeReader(BarcodeReader.Options(\n            formats = formats,\n            tryHarder = true,\n            tryRotate = true,\n            tryInvert = true,\n            tryDownscale = false,\n            isPure = false,\n            binarizer = BarcodeReader.Binarizer.LOCAL_AVERAGE,\n            maxNumberOfSymbols = 8\n        ))\n    }\n\n    private val cppMatrixReader by lazy { makeCppReader(true) }\n    private val cppAnyReader by lazy { makeCppReader(false) }\n    private val analyzerExecutor = Executors.newSingleThreadExecutor()\n'''
+          if old not in s: raise SystemExit('scanner block not found')
+          s=s.replace(old,new)
+
+          # Camera: Samsung-like 1x and quality mode
+          s=s.replace('camera?.cameraControl?.setZoomRatio(1.0f)\n                status.text = "Inquadra come nella fotocamera Samsung e premi SCATTA"', 'try { camera?.cameraControl?.setZoomRatio(1.0f) } catch (_: Exception) {}\n                status.text = "KEYENCE ECC200 • 1× • centra il DataMatrix e premi SCATTA"')
+          s=s.replace('val point = factory.createPoint(previewView.width / 2f, previewView.height / 2f)', 'val point = factory.createPoint(previewView.width / 2f, previewView.height * 0.43f)')
+          s=s.replace('        }, 280)\n', '        }, 650)\n')
+
+          old='''                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {\n                        status.text = "Analizzo lo scatto…"\n                        decodeStill(file)\n                    }\n'''
+          new='''                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {\n                        status.text = "Analizzo ECC200 ad alta risoluzione…"\n                        analyzerExecutor.execute {\n                            val hit = tryCppStillV9(file)\n                            runOnUiThread {\n                                if (hit != null) {\n                                    showDetected(hit.first, "${hit.second} • interno")\n                                } else {\n                                    decodeStill(file)\n                                }\n                            }\n                        }\n                    }\n'''
+          if old not in s: raise SystemExit('saved callback not found')
+          s=s.replace(old,new)
+
+          # Never leave app / never open Google scanner
+          s=s.replace('''        if (image == null) {\n            tryFallbackScanner()\n            return\n        }''','''        if (image == null) {\n            noCode("Immagine non analizzabile. Riprova.")\n            return\n        }''')
+          s=s.replace('''                    val zxing = tryZxing(file)\n                    if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else tryFallbackScanner()''','''                    val zxing = tryZxing(file)\n                    if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else noCode("DataMatrix ECC200 non letto. Riprova più fermo.")''')
+          s=s.replace('''                val zxing = tryZxing(file)\n                if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else tryFallbackScanner()''','''                val zxing = tryZxing(file)\n                if (!zxing.isNullOrBlank()) showDetected(zxing, "Scatto HD / DPM") else noCode("DataMatrix ECC200 non letto. Riprova più fermo.")''')
+          a=s.find('    private fun tryFallbackScanner() {')
+          b=s.find('    private fun tryZxing(file: File): String?', a)
+          if a != -1 and b != -1:
+              s=s[:a]+s[b:]
+
+          helper='''    private fun tryCppStillV9(file: File): Pair<String, String>? {\n        val bitmap = loadOrientedBitmap(file, 6000) ?: return null\n\n        fun read(reader: BarcodeReader, bmp: Bitmap): Pair<String, String>? {\n            return try {\n                val rect = Rect(0, 0, bmp.width, bmp.height)\n                val hit = reader.read(bmp, rect, 0).firstOrNull { !it.text.isNullOrBlank() }\n                val text = hit?.text?.trim().orEmpty()\n                if (text.isNotBlank()) text to hit!!.format.toString() else null\n            } catch (_: Exception) { null }\n        }\n\n        // 1) Prima prova: l'intero JPEG, come fa il decoder sulla foto Samsung.\n        read(cppMatrixReader, bitmap)?.let { return it }\n        read(cppAnyReader, bitmap)?.let { return it }\n\n        val w = bitmap.width\n        val h = bitmap.height\n        val cropRects = listOf(\n            Rect((w*0.10f).toInt(), (h*0.08f).toInt(), (w*0.90f).toInt(), (h*0.62f).toInt()),\n            Rect((w*0.20f).toInt(), (h*0.12f).toInt(), (w*0.80f).toInt(), (h*0.56f).toInt()),\n            Rect((w*0.28f).toInt(), (h*0.18f).toInt(), (w*0.72f).toInt(), (h*0.52f).toInt()),\n            Rect((w*0.18f).toInt(), (h*0.20f).toInt(), (w*0.82f).toInt(), (h*0.70f).toInt())\n        )\n\n        for (r0 in cropRects) {\n            val r = Rect(\n                r0.left.coerceIn(0, w-1), r0.top.coerceIn(0, h-1),\n                r0.right.coerceIn(1, w), r0.bottom.coerceIn(1, h)\n            )\n            if (r.width() < 40 || r.height() < 40) continue\n            try {\n                val crop = Bitmap.createBitmap(bitmap, r.left, r.top, r.width(), r.height())\n                read(cppMatrixReader, crop)?.let { return it }\n\n                val maxScale = if (crop.width < 1800 && crop.height < 1800) 2 else 1\n                if (maxScale > 1) {\n                    val up = Bitmap.createScaledBitmap(crop, crop.width*2, crop.height*2, false)\n                    read(cppMatrixReader, up)?.let { return it }\n                }\n\n                // Bianco su nero KEYENCE: prova soglie multiple.\n                for (t in intArrayOf(105, 120, 135, 150, 165, 180, 195)) {\n                    val bw = thresholdBitmap(crop, t)\n                    read(cppMatrixReader, bw)?.let { return it }\n                    if (bw.width < 1600 && bw.height < 1600) {\n                        val upBw = Bitmap.createScaledBitmap(bw, bw.width*2, bw.height*2, false)\n                        read(cppMatrixReader, upBw)?.let { return it }\n                    }\n                }\n            } catch (_: Exception) {}\n        }\n\n        return null\n    }\n\n    private fun loadOrientedBitmap(file: File, maxSide: Int): Bitmap? {\n        val raw = decodeScaledBitmap(file, maxSide) ?: return null\n        return try {\n            val exif = ExifInterface(file.absolutePath)\n            val o = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)\n            val matrix = Matrix()\n            when (o) {\n                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)\n                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)\n                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)\n                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.preScale(-1f, 1f)\n                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.preScale(1f, -1f)\n                ExifInterface.ORIENTATION_TRANSPOSE -> { matrix.preScale(-1f, 1f); matrix.postRotate(270f) }\n                ExifInterface.ORIENTATION_TRANSVERSE -> { matrix.preScale(-1f, 1f); matrix.postRotate(90f) }\n            }\n            if (matrix.isIdentity) raw else Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, matrix, true)\n        } catch (_: Exception) { raw }\n    }\n\n    private fun thresholdBitmap(src: Bitmap, threshold: Int): Bitmap {\n        val w = src.width\n        val h = src.height\n        val px = IntArray(w*h)\n        src.getPixels(px, 0, w, 0, 0, w, h)\n        for (i in px.indices) {\n            val c = px[i]\n            val r = Color.red(c)\n            val g = Color.green(c)\n            val b = Color.blue(c)\n            val y = (r*30 + g*59 + b*11) / 100\n            px[i] = if (y >= threshold) Color.WHITE else Color.BLACK\n        }\n        return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)\n    }\n\n'''
+          marker='''    private fun tryZxing(file: File): String? {\n'''
+          if marker not in s: raise SystemExit('tryZxing marker missing')
+          s=s.replace(marker, helper + marker)
+
+          # Wording: specifically DataMatrix ECC200 / Keyence
+          s=s.replace('DataMatrix letto ($source). Confermi?', 'ECC200 letto ($source). Confermi?')
+          s=s.replace('Inquadra il DataMatrix e premi SCATTA', 'Inquadra il DataMatrix KEYENCE e premi SCATTA')
+
+          marker2='''    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()\n'''
+          if marker2 in s and 'override fun onDestroy()' not in s:
+              s=s.replace(marker2, '''    override fun onDestroy() {\n        super.onDestroy()\n        analyzerExecutor.shutdownNow()\n        try { mlScanner.close() } catch (_: Exception) {}\n    }\n\n''' + marker2)
+
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Build APK
+        run: gradle -p tmp_np_datamatrix_v5 --no-daemon assembleDebug
+
+      - name: Prepare APK
+        run: cp tmp_np_datamatrix_v5/app/build/outputs/apk/debug/app-debug.apk NP_DataMatrix_V9.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NP_DataMatrix_V9_Android
+          path: NP_DataMatrix_V9.apk
+          if-no-files-found: error
