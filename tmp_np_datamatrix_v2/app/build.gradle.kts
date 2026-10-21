@@ -8,7 +8,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.np.datamatrix"
+        applicationId = "com.np.datamatrix.v2"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
